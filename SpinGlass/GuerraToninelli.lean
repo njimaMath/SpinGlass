@@ -839,54 +839,159 @@ private noncomputable def hessian_logZ_entry (K : EnergySpace (N + M)) (γ γ' :
       (std_basis (N := N + M) γ)
       (std_basis (N := N + M) γ')
 
+/-! ### Independent product coupling for the interpolation -/
+
+-- We work on the product probability space `Ω × Ω × Ω` equipped with the product measure
+-- `ℙ ⊗ ℙ ⊗ ℙ`, so that the three copies of the disorder are independent.
+
+private noncomputable def ℙ₃ : Measure (Ω × Ω × Ω) :=
+  (ℙ : Measure Ω).prod ((ℙ : Measure Ω).prod (ℙ : Measure Ω))
+
+-- Expectation on `Ω₃`
+local notation3 (prettyPrint := false) "𝔼₃[" e "]" =>
+  ∫ ω, e ω ∂((ℙ : Measure Ω).prod ((ℙ : Measure Ω).prod (ℙ : Measure Ω)))
+
+/-- Decoupled block field on `N+M` spins, using independent `ωN` and `ωM`. -/
+private noncomputable def K_block₃ : Ω × Ω → EnergySpace (N + M) :=
+  fun p =>
+    WithLp.toLp 2 (fun γ : Config (N + M) =>
+      (skN.U p.1) (cfgLeft (N := N) (M := M) γ) +
+        (skM.U p.2) (cfgRight (N := N) (M := M) γ))
+
+/-- Independent-coupling Guerra–Toninelli interpolated field on `Ω₃`. -/
+private noncomputable def K_interpol₃ (t : ℝ) : (Ω × Ω × Ω) → EnergySpace (N + M) :=
+  fun ω =>
+    (Real.sqrt t) • skL.U ω.1 +
+      (Real.sqrt (1 - t)) •
+        K_block₃ (N := N) (M := M) (β := β) (h := h) (skN := skN) (skM := skM) ω.2
+
+/-- Independent-coupling interpolation `Φ₃(t) = 𝔼[log Z(K_interpol₃(t))]` on `Ω₃`. -/
+private noncomputable def Φ₃ (t : ℝ) : ℝ :=
+  𝔼₃[fun ω =>
+    Real.log (skZ (N := N + M) (β := β) (h := h)
+      (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω))]
+
+/-! ### Monotonicity of the independent-coupling interpolation `Φ₃` -/
+
+private noncomputable def dΦ₃ (t : ℝ) : ℝ :=
+  (1 / 2 : ℝ) *
+    ∑ γ : Config (N + M), ∑ γ' : Config (N + M),
+      (C_L (N := N) (M := M) (β := β) γ γ' - C_blk (N := N) (M := M) (β := β) γ γ') *
+        𝔼₃[fun ω =>
+          hessian_logZ_entry (N := N) (M := M) (β := β) (h := h)
+            (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω)
+            γ γ']
+
+private lemma hHess₃_nonpos :
+    ∀ (t : ℝ) (γ γ' : Config (N + M)) (hgg' : γ ≠ γ') (ω : (Ω × Ω × Ω)),
+      hessian_logZ_entry (N := N) (M := M) (β := β) (h := h)
+          (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω)
+          γ γ' ≤ 0 := by
+  intro t γ γ' hgg' ω
+  have hH :
+      hessian_free_energy (N := N + M)
+          (skEnergy (N := N + M) (β := β) (h := h)
+            (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω))
+          (std_basis (N := N + M) γ) (std_basis (N := N + M) γ')
+        ≤ 0 :=
+    hessian_free_energy_std_basis_offdiag_nonpos
+      (N := N + M)
+      (H :=
+        skEnergy (N := N + M) (β := β) (h := h)
+          (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω))
+      (σ := γ) (τ := γ') hgg'
+  have hNM : 0 ≤ (N + M : ℝ) := by
+    exact_mod_cast (Nat.zero_le (N + M))
+  -- multiply the nonpositive Hessian by `N+M ≥ 0`
+  have :
+      (N + M : ℝ) *
+          hessian_free_energy (N := N + M)
+            (skEnergy (N := N + M) (β := β) (h := h)
+              (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω))
+            (std_basis (N := N + M) γ) (std_basis (N := N + M) γ')
+        ≤ 0 := by
+    exact mul_nonpos_of_nonneg_of_nonpos hNM hH
+  simpa [hessian_logZ_entry] using this
+
+/-! ### Analytic interpolation for `Φ₃` (Gaussian IBP + dominated differentiation) -/
+
 theorem Φ_one_ge_zero (hN : 0 < N) (hM : 0 < M) :
     Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) 1
       ≥
     Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) 0 := by
   classical
-  -- Build or assume independence so Cov(K_t) is affine in t with derivative ΔC
-  have hCov :
-    ∀ (t : ℝ) (ht : t ∈ Set.Ioo (0:ℝ) 1) (γ γ' : Config (N+M)),
-      cov (fun ω => (K_interpol (N := N) (M := M) ... t ω) γ)
-          (fun ω => (K_interpol (N := N) (M := M) ... t ω) γ')
-        = t * C_L γ γ' + (1-t) * C_blk γ γ' := by
-    sorry
-
   -- Gaussian interpolation derivative formula (IBP)
   have hderiv_formula :
     ∀ t ∈ Set.Ioo (0:ℝ) 1,
-      deriv (Φ (N := N) (M := M) ... ) t
+      deriv (Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)) t
         =
       (1/2:ℝ) * ∑ γ : Config (N+M), ∑ γ' : Config (N+M),
-        (C_L γ γ' - C_blk γ γ') *
+        (C_L (N := N) (M := M) (β := β) γ γ' - C_blk (N := N) (M := M) (β := β) γ γ') *
           𝔼[ fun ω =>
-            hessian_logZ_entry (K_interpol ... t ω) γ γ' ] := by
+            hessian_logZ_entry (N := N) (M := M) (β := β) (h := h)
+                (K_interpol (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)
+                  t ω) γ γ' ] := by
     sorry
 
   -- Pointwise Hessian sign for γ ≠ γ'
   have hHess_nonpos :
     ∀ (t : ℝ) (γ γ' : Config (N+M)) (hgg' : γ ≠ γ') (ω : Ω),
-      hessian_logZ_entry (K_interpol ... t ω) γ γ' ≤ 0 := by
+      hessian_logZ_entry (N := N) (M := M) (β := β) (h := h)
+          (K_interpol (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)
+            t ω) γ γ' ≤ 0 := by
     -- derived from your hessian_free_energy_std_basis_offdiag_nonpos
-    sorry
+    intro t γ γ' hgg' ω
+    have hH :
+        hessian_free_energy (N := N + M)
+            (skEnergy (N := N + M) (β := β) (h := h)
+              (K_interpol (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)
+                t ω))
+            (std_basis (N := N + M) γ) (std_basis (N := N + M) γ')
+          ≤ 0 :=
+      hessian_free_energy_std_basis_offdiag_nonpos
+        (N := N + M)
+        (H := skEnergy (N := N + M) (β := β) (h := h)
+          (K_interpol (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω))
+        (σ := γ) (τ := γ') hgg'
+    have hNM : 0 ≤ (N + M : ℝ) := by
+      exact_mod_cast (Nat.zero_le (N + M))
+    have : (N + M : ℝ) *
+        hessian_free_energy (N := N + M)
+            (skEnergy (N := N + M) (β := β) (h := h)
+              (K_interpol (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)
+                t ω))
+            (std_basis (N := N + M) γ) (std_basis (N := N + M) γ')
+        ≤ 0 := by
+      exact mul_nonpos_of_nonneg_of_nonpos hNM hH
+    simpa [hessian_logZ_entry] using this
 
   -- Covariance difference sign and diagonal equality come from your lemmas
   have hΔC_diag :
-    ∀ γ : Config (N+M), C_L γ γ - C_blk γ γ = 0 := by
+    ∀ γ : Config (N+M),
+      C_L (N := N) (M := M) (β := β) γ γ - C_blk (N := N) (M := M) (β := β) γ γ = 0 := by
     intro γ
     -- use cov_deriv_diag
-    sorry
+    have hCL :
+        C_L (N := N) (M := M) (β := β) γ γ = C_blk (N := N) (M := M) (β := β) γ γ := by
+      simpa [C_L, C_blk] using
+        (cov_deriv_diag (N := N) (M := M) (β := β) (hN := hN) (hM := hM) γ)
+    exact sub_eq_zero.2 hCL
 
   have hΔC_off :
-    ∀ {γ γ' : Config (N+M)}, γ ≠ γ' → C_L γ γ' - C_blk γ γ' ≤ 0 := by
+    ∀ {γ γ' : Config (N+M)}, γ ≠ γ' →
+      C_L (N := N) (M := M) (β := β) γ γ' - C_blk (N := N) (M := M) (β := β) γ γ' ≤ 0 := by
     intro γ γ' hne
     -- use cov_deriv_offdiag_nonpos
-    sorry
+    have hCL : C_L (N := N) (M := M) (β := β) γ γ' ≤ C_blk (N := N) (M := M) (β := β) γ γ' := by
+      simpa [C_L, C_blk] using
+        (cov_deriv_offdiag_nonpos (N := N) (M := M) (β := β) (hN := hN) (hM := hM) (γ := γ)
+          (γ' := γ'))
+    exact sub_nonpos.2 hCL
 
   -- Derivative nonneg on (0,1)
   have hderiv_nonneg :
     ∀ t ∈ Set.Ioo (0:ℝ) 1,
-      0 ≤ deriv (Φ (N := N) (M := M) ... ) t := by
+      0 ≤ deriv (Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)) t := by
     intro t ht
     -- rewrite using hderiv_formula and show each summand ≥ 0
     -- diagonal terms vanish by hΔC_diag, off-diagonal are product of two nonpos
@@ -894,13 +999,14 @@ theorem Φ_one_ge_zero (hN : 0 < N) (hM : 0 < M) :
 
   -- Conclude monotonicity on [0,1] and evaluate at endpoints
   have hmono :
-    MonotoneOn (Φ (N := N) (M := M) ... ) (Set.Icc (0:ℝ) 1) := by
+    MonotoneOn (Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM))
+      (Set.Icc (0:ℝ) 1) := by
     -- apply mean value theorem / monotoneOn_of_deriv_nonneg using hderiv_nonneg
     sorry
 
   have h01 : (0:ℝ) ∈ Set.Icc (0:ℝ) 1 := by simp
   have h11 : (1:ℝ) ∈ Set.Icc (0:ℝ) 1 := by simp
-  exact hmono h01 h11
+  exact hmono h01 h11 (by simp)
 
 /--
 **Guerra–Toninelli inequality (SK model, blueprint).**
