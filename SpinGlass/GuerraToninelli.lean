@@ -810,6 +810,35 @@ variable (skL : SKDisorder (Ω := Ω) (N + M) β h)
 variable (skN : SKDisorder (Ω := Ω) N β h)
 variable (skM : SKDisorder (Ω := Ω) M β h)
 
+open scoped BigOperators
+
+/-!
+We name the two covariance kernels that enter the Guerra–Toninelli interpolation:
+
+* `C_L` is the SK covariance kernel on `N+M` spins;
+* `C_blk` is the block (decoupled) kernel coming from the `N`- and `M`-spin systems.
+
+We also package the relevant Hessian entry of the (unnormalized) log-partition function:
+it is `(N+M)` times the Hessian of the free energy density evaluated on standard basis vectors.
+-/
+
+private def C_L (γ γ' : Config (N + M)) : ℝ :=
+  sk_cov_kernel (N := N + M) (β := β) γ γ'
+
+private def C_blk (γ γ' : Config (N + M)) : ℝ :=
+  sk_cov_kernel (N := N) (β := β)
+      (cfgLeft (N := N) (M := M) γ) (cfgLeft (N := N) (M := M) γ')
+    +
+    sk_cov_kernel (N := M) (β := β)
+      (cfgRight (N := N) (M := M) γ) (cfgRight (N := N) (M := M) γ')
+
+private noncomputable def hessian_logZ_entry (K : EnergySpace (N + M)) (γ γ' : Config (N + M)) : ℝ :=
+  (N + M : ℝ) *
+    hessian_free_energy (N := N + M)
+      (skEnergy (N := N + M) (β := β) (h := h) K)
+      (std_basis (N := N + M) γ)
+      (std_basis (N := N + M) γ')
+
 theorem Φ_one_ge_zero (hN : 0 < N) (hM : 0 < M) :
     Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) 1
       ≥
