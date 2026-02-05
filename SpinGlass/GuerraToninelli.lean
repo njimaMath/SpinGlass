@@ -810,16 +810,68 @@ variable (skL : SKDisorder (Ω := Ω) (N + M) β h)
 variable (skN : SKDisorder (Ω := Ω) N β h)
 variable (skM : SKDisorder (Ω := Ω) M β h)
 
-/--
-Monotonicity of the Guerra–Toninelli interpolation:
-`Φ(1) ≥ Φ(0)`.
-
-This is the missing analytic step (Gaussian interpolation / IBP + covariance sign)
-and is left as an axiom in this blueprint file.
--/
-axiom Φ_one_ge_zero (hN : 0 < N) (hM : 0 < M) :
+theorem Φ_one_ge_zero (hN : 0 < N) (hM : 0 < M) :
     Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) 1
-      ≥ Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) 0
+      ≥
+    Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) 0 := by
+  classical
+  -- Build or assume independence so Cov(K_t) is affine in t with derivative ΔC
+  have hCov :
+    ∀ (t : ℝ) (ht : t ∈ Set.Ioo (0:ℝ) 1) (γ γ' : Config (N+M)),
+      cov (fun ω => (K_interpol (N := N) (M := M) ... t ω) γ)
+          (fun ω => (K_interpol (N := N) (M := M) ... t ω) γ')
+        = t * C_L γ γ' + (1-t) * C_blk γ γ' := by
+    sorry
+
+  -- Gaussian interpolation derivative formula (IBP)
+  have hderiv_formula :
+    ∀ t ∈ Set.Ioo (0:ℝ) 1,
+      deriv (Φ (N := N) (M := M) ... ) t
+        =
+      (1/2:ℝ) * ∑ γ : Config (N+M), ∑ γ' : Config (N+M),
+        (C_L γ γ' - C_blk γ γ') *
+          𝔼[ fun ω =>
+            hessian_logZ_entry (K_interpol ... t ω) γ γ' ] := by
+    sorry
+
+  -- Pointwise Hessian sign for γ ≠ γ'
+  have hHess_nonpos :
+    ∀ (t : ℝ) (γ γ' : Config (N+M)) (hgg' : γ ≠ γ') (ω : Ω),
+      hessian_logZ_entry (K_interpol ... t ω) γ γ' ≤ 0 := by
+    -- derived from your hessian_free_energy_std_basis_offdiag_nonpos
+    sorry
+
+  -- Covariance difference sign and diagonal equality come from your lemmas
+  have hΔC_diag :
+    ∀ γ : Config (N+M), C_L γ γ - C_blk γ γ = 0 := by
+    intro γ
+    -- use cov_deriv_diag
+    sorry
+
+  have hΔC_off :
+    ∀ {γ γ' : Config (N+M)}, γ ≠ γ' → C_L γ γ' - C_blk γ γ' ≤ 0 := by
+    intro γ γ' hne
+    -- use cov_deriv_offdiag_nonpos
+    sorry
+
+  -- Derivative nonneg on (0,1)
+  have hderiv_nonneg :
+    ∀ t ∈ Set.Ioo (0:ℝ) 1,
+      0 ≤ deriv (Φ (N := N) (M := M) ... ) t := by
+    intro t ht
+    -- rewrite using hderiv_formula and show each summand ≥ 0
+    -- diagonal terms vanish by hΔC_diag, off-diagonal are product of two nonpos
+    sorry
+
+  -- Conclude monotonicity on [0,1] and evaluate at endpoints
+  have hmono :
+    MonotoneOn (Φ (N := N) (M := M) ... ) (Set.Icc (0:ℝ) 1) := by
+    -- apply mean value theorem / monotoneOn_of_deriv_nonneg using hderiv_nonneg
+    sorry
+
+  have h01 : (0:ℝ) ∈ Set.Icc (0:ℝ) 1 := by simp
+  have h11 : (1:ℝ) ∈ Set.Icc (0:ℝ) 1 := by simp
+  exact hmono h01 h11
 
 /--
 **Guerra–Toninelli inequality (SK model, blueprint).**
