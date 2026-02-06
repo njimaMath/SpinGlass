@@ -15,12 +15,12 @@ import GibbsMeasure.Prereqs.CylinderEvents
 import GibbsMeasure.Prereqs.Filtration.Consistent
 import GibbsMeasure.Prereqs.Juxt
 import GibbsMeasure.Prereqs.Kernel.CondExp
-import GibbsMeasure.Prereqs.Kernel.CondExp'
 import GibbsMeasure.Prereqs.Kernel.Feller
 import GibbsMeasure.Prereqs.Kernel.Proper
 import GibbsMeasure.Prereqs.LebesgueCondExp
 import GibbsMeasure.Specification
 import GibbsMeasure.Specification.ErgodicDecomposition
+import GibbsMeasure.Specification.ChoquetLaw
 import GibbsMeasure.Specification.Existence
 import GibbsMeasure.Specification.Extremal
 import GibbsMeasure.Specification.Quasilocal
