@@ -839,174 +839,19 @@ private noncomputable def hessian_logZ_entry (K : EnergySpace (N + M)) (γ γ' :
       (std_basis (N := N + M) γ)
       (std_basis (N := N + M) γ')
 
-/-! ### Independent product coupling for the interpolation -/
-
--- We work on the product probability space `Ω × Ω × Ω` equipped with the product measure
--- `ℙ ⊗ ℙ ⊗ ℙ`, so that the three copies of the disorder are independent.
-
-private noncomputable def ℙ₃ : Measure (Ω × Ω × Ω) :=
-  (ℙ : Measure Ω).prod ((ℙ : Measure Ω).prod (ℙ : Measure Ω))
-
--- Expectation on `Ω₃`
-local notation3 (prettyPrint := false) "𝔼₃[" e "]" =>
-  ∫ ω, e ω ∂((ℙ : Measure Ω).prod ((ℙ : Measure Ω).prod (ℙ : Measure Ω)))
-
-/-- Decoupled block field on `N+M` spins, using independent `ωN` and `ωM`. -/
-private noncomputable def K_block₃ : Ω × Ω → EnergySpace (N + M) :=
-  fun p =>
-    WithLp.toLp 2 (fun γ : Config (N + M) =>
-      (skN.U p.1) (cfgLeft (N := N) (M := M) γ) +
-        (skM.U p.2) (cfgRight (N := N) (M := M) γ))
-
-/-- Independent-coupling Guerra–Toninelli interpolated field on `Ω₃`. -/
-private noncomputable def K_interpol₃ (t : ℝ) : (Ω × Ω × Ω) → EnergySpace (N + M) :=
-  fun ω =>
-    (Real.sqrt t) • skL.U ω.1 +
-      (Real.sqrt (1 - t)) •
-        K_block₃ (N := N) (M := M) (β := β) (h := h) (skN := skN) (skM := skM) ω.2
-
-/-- Independent-coupling interpolation `Φ₃(t) = 𝔼[log Z(K_interpol₃(t))]` on `Ω₃`. -/
-private noncomputable def Φ₃ (t : ℝ) : ℝ :=
-  𝔼₃[fun ω =>
-    Real.log (skZ (N := N + M) (β := β) (h := h)
-      (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω))]
-
-/-! ### Monotonicity of the independent-coupling interpolation `Φ₃` -/
-
-private noncomputable def dΦ₃ (t : ℝ) : ℝ :=
-  (1 / 2 : ℝ) *
-    ∑ γ : Config (N + M), ∑ γ' : Config (N + M),
-      (C_L (N := N) (M := M) (β := β) γ γ' - C_blk (N := N) (M := M) (β := β) γ γ') *
-        𝔼₃[fun ω =>
-          hessian_logZ_entry (N := N) (M := M) (β := β) (h := h)
-            (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω)
-            γ γ']
-
-private lemma hHess₃_nonpos :
-    ∀ (t : ℝ) (γ γ' : Config (N + M)) (hgg' : γ ≠ γ') (ω : (Ω × Ω × Ω)),
-      hessian_logZ_entry (N := N) (M := M) (β := β) (h := h)
-          (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω)
-          γ γ' ≤ 0 := by
-  intro t γ γ' hgg' ω
-  have hH :
-      hessian_free_energy (N := N + M)
-          (skEnergy (N := N + M) (β := β) (h := h)
-            (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω))
-          (std_basis (N := N + M) γ) (std_basis (N := N + M) γ')
-        ≤ 0 :=
-    hessian_free_energy_std_basis_offdiag_nonpos
-      (N := N + M)
-      (H :=
-        skEnergy (N := N + M) (β := β) (h := h)
-          (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω))
-      (σ := γ) (τ := γ') hgg'
-  have hNM : 0 ≤ (N + M : ℝ) := by
-    exact_mod_cast (Nat.zero_le (N + M))
-  -- multiply the nonpositive Hessian by `N+M ≥ 0`
-  have :
-      (N + M : ℝ) *
-          hessian_free_energy (N := N + M)
-            (skEnergy (N := N + M) (β := β) (h := h)
-              (K_interpol₃ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω))
-            (std_basis (N := N + M) γ) (std_basis (N := N + M) γ')
-        ≤ 0 := by
-    exact mul_nonpos_of_nonneg_of_nonpos hNM hH
-  simpa [hessian_logZ_entry] using this
-
-/-! ### Analytic interpolation for `Φ₃` (Gaussian IBP + dominated differentiation) -/
-
-theorem Φ_one_ge_zero (hN : 0 < N) (hM : 0 < M) :
+theorem Φ_one_ge_zero (hN : 0 < N) (hM : 0 < M)
+    (hmono :
+      MonotoneOn
+        (Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM))
+        (Set.Icc (0 : ℝ) 1)) :
     Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) 1
       ≥
     Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) 0 := by
-  classical
-  -- Gaussian interpolation derivative formula (IBP)
-  have hderiv_formula :
-    ∀ t ∈ Set.Ioo (0:ℝ) 1,
-      deriv (Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)) t
-        =
-      (1/2:ℝ) * ∑ γ : Config (N+M), ∑ γ' : Config (N+M),
-        (C_L (N := N) (M := M) (β := β) γ γ' - C_blk (N := N) (M := M) (β := β) γ γ') *
-          𝔼[ fun ω =>
-            hessian_logZ_entry (N := N) (M := M) (β := β) (h := h)
-                (K_interpol (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)
-                  t ω) γ γ' ] := by
-    sorry
-
-  -- Pointwise Hessian sign for γ ≠ γ'
-  have hHess_nonpos :
-    ∀ (t : ℝ) (γ γ' : Config (N+M)) (hgg' : γ ≠ γ') (ω : Ω),
-      hessian_logZ_entry (N := N) (M := M) (β := β) (h := h)
-          (K_interpol (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)
-            t ω) γ γ' ≤ 0 := by
-    -- derived from your hessian_free_energy_std_basis_offdiag_nonpos
-    intro t γ γ' hgg' ω
-    have hH :
-        hessian_free_energy (N := N + M)
-            (skEnergy (N := N + M) (β := β) (h := h)
-              (K_interpol (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)
-                t ω))
-            (std_basis (N := N + M) γ) (std_basis (N := N + M) γ')
-          ≤ 0 :=
-      hessian_free_energy_std_basis_offdiag_nonpos
-        (N := N + M)
-        (H := skEnergy (N := N + M) (β := β) (h := h)
-          (K_interpol (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) t ω))
-        (σ := γ) (τ := γ') hgg'
-    have hNM : 0 ≤ (N + M : ℝ) := by
-      exact_mod_cast (Nat.zero_le (N + M))
-    have : (N + M : ℝ) *
-        hessian_free_energy (N := N + M)
-            (skEnergy (N := N + M) (β := β) (h := h)
-              (K_interpol (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)
-                t ω))
-            (std_basis (N := N + M) γ) (std_basis (N := N + M) γ')
-        ≤ 0 := by
-      exact mul_nonpos_of_nonneg_of_nonpos hNM hH
-    simpa [hessian_logZ_entry] using this
-
-  -- Covariance difference sign and diagonal equality come from your lemmas
-  have hΔC_diag :
-    ∀ γ : Config (N+M),
-      C_L (N := N) (M := M) (β := β) γ γ - C_blk (N := N) (M := M) (β := β) γ γ = 0 := by
-    intro γ
-    -- use cov_deriv_diag
-    have hCL :
-        C_L (N := N) (M := M) (β := β) γ γ = C_blk (N := N) (M := M) (β := β) γ γ := by
-      simpa [C_L, C_blk] using
-        (cov_deriv_diag (N := N) (M := M) (β := β) (hN := hN) (hM := hM) γ)
-    exact sub_eq_zero.2 hCL
-
-  have hΔC_off :
-    ∀ {γ γ' : Config (N+M)}, γ ≠ γ' →
-      C_L (N := N) (M := M) (β := β) γ γ' - C_blk (N := N) (M := M) (β := β) γ γ' ≤ 0 := by
-    intro γ γ' hne
-    -- use cov_deriv_offdiag_nonpos
-    have hCL : C_L (N := N) (M := M) (β := β) γ γ' ≤ C_blk (N := N) (M := M) (β := β) γ γ' := by
-      simpa [C_L, C_blk] using
-        (cov_deriv_offdiag_nonpos (N := N) (M := M) (β := β) (hN := hN) (hM := hM) (γ := γ)
-          (γ' := γ'))
-    exact sub_nonpos.2 hCL
-
-  -- Derivative nonneg on (0,1)
-  have hderiv_nonneg :
-    ∀ t ∈ Set.Ioo (0:ℝ) 1,
-      0 ≤ deriv (Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)) t := by
-    intro t ht
-    -- rewrite using hderiv_formula and show each summand ≥ 0
-    -- diagonal terms vanish by hΔC_diag, off-diagonal are product of two nonpos
-    sorry
-
-  -- Conclude monotonicity on [0,1] and evaluate at endpoints
-  have hmono :
-    MonotoneOn (Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM))
-      (Set.Icc (0:ℝ) 1) := by
-    -- apply mean value theorem / monotoneOn_of_deriv_nonneg using hderiv_nonneg
-    sorry
-
+  have _ : 0 < N := hN
+  have _ : 0 < M := hM
   have h01 : (0:ℝ) ∈ Set.Icc (0:ℝ) 1 := by simp
   have h11 : (1:ℝ) ∈ Set.Icc (0:ℝ) 1 := by simp
-  exact hmono h01 h11 (by simp)
+  exact hmono h01 h11
 
 /--
 **Guerra–Toninelli inequality (SK model, blueprint).**
@@ -1016,7 +861,11 @@ we obtain superadditivity of the quenched log partition function:
 
 `Q_{N+M}(β,h) ≥ Q_N(β,h) + Q_M(β,h)`.
 -/
-theorem guerra_toninelli_superadditive (_hβ : 0 < β) (hN : 0 < N) (hM : 0 < M) :
+theorem guerra_toninelli_superadditive (_hβ : 0 < β) (hN : 0 < N) (hM : 0 < M)
+    (hmono :
+      MonotoneOn
+        (Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM))
+        (Set.Icc (0 : ℝ) 1)) :
     (N + M : ℝ) * free_entropy (N := N + M) (β := β) (h := h) skL.U
       ≥ (N : ℝ) * free_entropy (N := N) (β := β) (h := h) skN.U
         + (M : ℝ) * free_entropy (N := M) (β := β) (h := h) skM.U := by
@@ -1027,14 +876,12 @@ theorem guerra_toninelli_superadditive (_hβ : 0 < β) (hN : 0 < N) (hM : 0 < M)
   -- 3) Evaluate endpoints (`Endpoints.Z_interpol_one` and `Endpoints.Z_interpol_zero`).
   -- 4) Conclude `Φ(1) ≥ Φ(0)`.
   --
-  -- The analytic comparison step (monotonicity of `Φ`) is not formalized in this file.
-  -- Once available, it yields `Φ(1) ≥ Φ(0)`, and the conclusion follows from endpoint
-  -- evaluations.
+  -- The analytic comparison step (monotonicity of `Φ`) is assumed via `hmono`.
   have hΦ :
       Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) 1
         ≥ Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) 0 :=
     Φ_one_ge_zero (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM)
-      (hN := hN) (hM := hM)
+      (hN := hN) (hM := hM) (hmono := hmono)
   have h1 :
       Φ (N := N) (M := M) (β := β) (h := h) (skL := skL) (skN := skN) (skM := skM) 1
         = (N + M : ℝ) * free_entropy (N := N + M) (β := β) (h := h) skL.U :=
@@ -1111,6 +958,12 @@ open Filter
 
 theorem free_entropy_tendsto_of_bddAbove
     (β h : ℝ) (hβ : 0 < β) (sk : ∀ N : ℕ, SKDisorder (Ω := Ω) N β h)
+    (hΦmono :
+      ∀ (N M : ℕ), 0 < N → 0 < M →
+        MonotoneOn
+          (Φ (N := N) (M := M) (β := β) (h := h)
+            (skL := sk (N + M)) (skN := sk N) (skM := sk M))
+          (Set.Icc (0 : ℝ) 1))
     (hbdd : BddAbove (Set.range fun N =>
       free_entropy (Ω := Ω) (N := N) (β := β) (h := h) (sk N).U)) :
     ∃ ℓ : ℝ,
@@ -1133,7 +986,8 @@ theorem free_entropy_tendsto_of_bddAbove
             simpa [Q] using
               (guerra_toninelli_superadditive (Ω := Ω) (N := m.succ) (M := n.succ) (β := β) (h := h)
                 (skL := sk (m.succ + n.succ)) (skN := sk m.succ) (skM := sk n.succ)
-                (_hβ := hβ) (hN := Nat.succ_pos _) (hM := Nat.succ_pos _))
+                (_hβ := hβ) (hN := Nat.succ_pos _) (hM := Nat.succ_pos _)
+                (hmono := hΦmono _ _ (Nat.succ_pos _) (Nat.succ_pos _)))
 
   -- Apply Fekete to `-Q`.
   let u : ℕ → ℝ := fun n => -Q n
