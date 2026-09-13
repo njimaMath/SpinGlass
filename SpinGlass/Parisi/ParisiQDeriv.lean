@@ -29,6 +29,8 @@ of minimization with the mass parameters fixed.
 * `hasDerivAt_coleHopf_coleHopf_q`: the local derivative (14.219).
 * `hasDerivAt_parisiFunctional_qUpdate`: the derivative of the Parisi functional (14.220).
 * `parisiQ_eq_moment_of_isLocalMin`: the stationarity equation (14.222).
+* `parisiQ_strict_chain_and_eq_moment_of_isMin`: Proposition 14.7.5, including (14.221) and
+  (14.222).
 -/
 
 open MeasureTheory ProbabilityTheory Real Set
@@ -263,6 +265,130 @@ lemma IsParisiQMinimizer.le_qUpdate {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} {ms :
     parisiFunctional ξ h ms qs ≤ parisiFunctional ξ h ms (qUpdate qs r u) :=
   hmin.2 _ (hmin.1.qUpdate r hu0 hu1 hleft hright)
 
+/-- If both endpoint inequalities are strict, admissible global minimality gives an ordinary
+local minimum along every overlap coordinate. -/
+lemma IsParisiQMinimizer.isLocalMin_qUpdate
+    {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ)
+    (hmin : IsParisiQMinimizer ξ h ms qs) (hq0 : 0 < qs 0)
+    (hq1 : qs (Fin.last k) < 1) (r : Fin (k + 1)) :
+    IsLocalMin (fun u => parisiFunctional ξ h ms (qUpdate qs r u)) (qs r) := by
+  have hu0 : ∀ᶠ u in nhds (qs r), 0 ≤ u :=
+    eventually_ge_nhds (hq0.trans_le (hmin.1.monotone (Fin.zero_le r)))
+  have hu1 : ∀ᶠ u in nhds (qs r), u ≤ 1 :=
+    eventually_le_nhds ((hmin.1.monotone (Fin.le_last r)).trans_lt hq1)
+  have hleft : ∀ᶠ u in nhds (qs r), ∀ p : Fin (k + 1), p < r → qs p < u := by
+    have hall : ∀ᶠ u in nhds (qs r), ∀ p ∈ Finset.univ, p < r → qs p < u :=
+      (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
+        by_cases hp : p < r
+        · filter_upwards [eventually_gt_nhds (hmin.1.1 hp)] with u hu
+          exact fun _ => hu
+        · exact Filter.Eventually.of_forall fun _ hpr => (hp hpr).elim)
+    simpa using hall
+  have hright : ∀ᶠ u in nhds (qs r), ∀ p : Fin (k + 1), r < p → u < qs p := by
+    have hall : ∀ᶠ u in nhds (qs r), ∀ p ∈ Finset.univ, r < p → u < qs p :=
+      (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
+        by_cases hp : r < p
+        · filter_upwards [eventually_lt_nhds (hmin.1.1 hp)] with u hu
+          exact fun _ => hu
+        · exact Filter.Eventually.of_forall fun _ hrp => (hp hrp).elim)
+    simpa using hall
+  have hle : ∀ᶠ u in nhds (qs r),
+      parisiFunctional ξ h ms qs ≤ parisiFunctional ξ h ms (qUpdate qs r u) := by
+    filter_upwards [hu0, hu1, hleft, hright] with u hu0 hu1 hleft hright
+    exact hmin.le_qUpdate r hu0 hu1 hleft hright
+  change ∀ᶠ u in nhds (qs r),
+    parisiFunctional ξ h ms (qUpdate qs r (qs r)) ≤
+      parisiFunctional ξ h ms (qUpdate qs r u)
+  simpa [qUpdate] using hle
+
+/-- At the lower endpoint, constrained minimality forces a nonnegative right derivative. -/
+lemma IsParisiQMinimizer.first_deriv_nonneg
+    {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ}
+    (hmin : IsParisiQMinimizer ξ h ms qs) (hq0 : qs 0 = 0) {d : ℝ}
+    (hd : HasDerivAt (fun u => parisiFunctional ξ h ms (qUpdate qs 0 u)) d (qs 0)) :
+    0 ≤ d := by
+  have hq1 : qs 0 < 1 := by rw [hq0]; norm_num
+  have hadm : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)),
+      ParisiQAdmissible (qUpdate qs 0 u) := by
+    have hu0 : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)), 0 ≤ u := by
+      filter_upwards [self_mem_nhdsWithin] with u hu
+      exact hq0 ▸ hu
+    have hu1 : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)), u ≤ 1 :=
+      (eventually_le_nhds hq1).filter_mono inf_le_left
+    have hright : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)),
+        ∀ p : Fin (k + 1), 0 < p → u < qs p := by
+      have hall : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)), ∀ p ∈ Finset.univ,
+          (0 : Fin (k + 1)) < p → u < qs p :=
+        (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
+          by_cases hp : (0 : Fin (k + 1)) < p
+          · exact (eventually_lt_nhds (hmin.1.1 hp)).filter_mono inf_le_left |>.mono
+              fun _ hu _ => hu
+          · exact Filter.Eventually.of_forall fun _ hp' => (hp hp').elim)
+      simpa using hall
+    filter_upwards [hu0, hu1, hright] with u hu0 hu1 hright
+    exact hmin.1.qUpdate 0 hu0 hu1 (fun p hp => (Fin.not_lt_zero p hp).elim) hright
+  have hlocal : IsLocalMinOn (fun u => parisiFunctional ξ h ms (qUpdate qs 0 u))
+      (Ici (qs 0)) (qs 0) := by
+    filter_upwards [hadm] with u hu
+    simpa [qUpdate] using hmin.2 _ hu
+  have htangent : (1 : ℝ) ∈ posTangentConeAt (Ici (qs 0)) (qs 0) := by
+    convert sub_mem_posTangentConeAt_of_segment_subset
+      (s := Ici (qs 0)) (x := qs 0) (y := qs 0 + 1) (by
+        rw [segment_eq_Icc (by linarith : qs 0 ≤ qs 0 + 1)]
+        exact Icc_subset_Ici_self) using 1
+    ring
+  have hd_nonneg := hlocal.hasFDerivWithinAt_nonneg
+    hd.hasFDerivAt.hasFDerivWithinAt htangent
+  change 0 ≤ (1 : ℝ) * d at hd_nonneg
+  simpa using hd_nonneg
+
+/-- At the upper endpoint, constrained minimality forces a nonpositive left derivative. -/
+lemma IsParisiQMinimizer.last_deriv_nonpos
+    {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ}
+    (hmin : IsParisiQMinimizer ξ h ms qs) (hq1 : qs (Fin.last k) = 1) {d : ℝ}
+    (hd : HasDerivAt
+      (fun u => parisiFunctional ξ h ms (qUpdate qs (Fin.last k) u)) d
+      (qs (Fin.last k))) : d ≤ 0 := by
+  have hq0 : 0 < qs (Fin.last k) := by rw [hq1]; norm_num
+  have hadm : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))),
+      ParisiQAdmissible (qUpdate qs (Fin.last k) u) := by
+    have hu0 : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))), 0 ≤ u :=
+      (eventually_ge_nhds hq0).filter_mono inf_le_left
+    have hu1 : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))), u ≤ 1 := by
+      filter_upwards [self_mem_nhdsWithin] with u hu
+      exact hq1 ▸ hu
+    have hleft : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))),
+        ∀ p : Fin (k + 1), p < Fin.last k → qs p < u := by
+      have hall : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))),
+          ∀ p ∈ Finset.univ, p < Fin.last k → qs p < u :=
+        (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
+          by_cases hp : p < Fin.last k
+          · exact (eventually_gt_nhds (hmin.1.1 hp)).filter_mono inf_le_left |>.mono
+              fun _ hu _ => hu
+          · exact Filter.Eventually.of_forall fun _ hp' => (hp hp').elim)
+      simpa using hall
+    filter_upwards [hu0, hu1, hleft] with u hu0 hu1 hleft
+    exact hmin.1.qUpdate (Fin.last k) hu0 hu1 hleft
+      (fun p hp => (not_lt_of_ge (Fin.le_last p) hp).elim)
+  have hlocal : IsLocalMinOn
+      (fun u => parisiFunctional ξ h ms (qUpdate qs (Fin.last k) u))
+      (Iic (qs (Fin.last k))) (qs (Fin.last k)) := by
+    filter_upwards [hadm] with u hu
+    simpa [qUpdate] using hmin.2 _ hu
+  have htangent : (-1 : ℝ) ∈
+      posTangentConeAt (Iic (qs (Fin.last k))) (qs (Fin.last k)) := by
+    convert sub_mem_posTangentConeAt_of_segment_subset
+      (s := Iic (qs (Fin.last k))) (x := qs (Fin.last k))
+      (y := qs (Fin.last k) - 1) (by
+        rw [segment_symm, segment_eq_Icc
+          (by linarith : qs (Fin.last k) - 1 ≤ qs (Fin.last k))]
+        exact Icc_subset_Iic_self) using 1
+    ring
+  have hd_nonneg := hlocal.hasFDerivWithinAt_nonneg
+    hd.hasFDerivAt.hasFDerivWithinAt htangent
+  change 0 ≤ (-1 : ℝ) * d at hd_nonneg
+  linarith
+
 /-- Every consecutive mass gap is positive under (14.103), including the first and last gaps
 and the vacuous-mass case `k = 0`. -/
 lemma ParisiMAdmissible.mExt_gap_pos {k : ℕ} {ms : Fin k → ℝ}
@@ -483,6 +609,54 @@ theorem parisiQ_eq_moment_of_isLocalMin_of_admissible
   apply parisiQ_eq_moment_of_isLocalMin ms qs r hmin hX₀ hξ hξ'
   · exact ne_of_gt (hm.mExt_gap_pos r) |>.imp fun heq => sub_eq_zero.mpr heq
   · exact ne_of_gt hξ₂
+
+/-- Proposition 14.7.5, in the overlap-coordinate API.
+
+The functions `M` and `ξ₂` record respectively
+`E(W₁ ⋯ W_{r-1} A'_r(ζ_r)^2)` and `ξ''(q_r)`. The endpoint assumptions are the two strict
+bounds used in Talagrand's proof: the first moment is positive and the last moment is less than
+one. Admissible global minimality then gives the strict extended overlap chain (14.221), and
+the derivative identity (14.220) gives all the equations (14.222). -/
+theorem parisiQ_strict_chain_and_eq_moment_of_isMin
+    {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ)
+    (M ξ₂ : Fin (k + 1) → ℝ) (hm : ParisiMAdmissible ms)
+    (hmin : IsParisiQMinimizer ξ h ms qs)
+    (hX₀ : ∀ r, HasDerivAt
+      (fun u => parisiX₀ ξ ms (qUpdate qs r u) (fun x => Real.log (Real.cosh (h + x))))
+      ((-1 / 2 : ℝ) * ξ₂ r * (mExt ms (r.val + 1) - mExt ms r.val) * M r) (qs r))
+    (hξ : ∀ r, HasDerivAt ξ (deriv ξ (qs r)) (qs r))
+    (hξ' : ∀ r, HasDerivAt (deriv ξ) (ξ₂ r) (qs r))
+    (hξ₂ : ∀ r, 0 < ξ₂ r) (hMfirst : 0 < M 0) (hMlast : M (Fin.last k) < 1) :
+    (∀ r : ℕ, r ≤ k + 1 → qExt qs r < qExt qs (r + 1)) ∧
+      ∀ r, qs r = M r := by
+  have hd (r : Fin (k + 1)) :=
+    hasDerivAt_parisiFunctional_qUpdate ms qs r (hX₀ r) (hξ r) (hξ' r)
+  have hq0 : 0 < qs 0 := by
+    by_contra hn
+    have hz : qs 0 = 0 := le_antisymm (not_lt.mp hn) hmin.1.2.1
+    have hnonneg := hmin.first_deriv_nonneg hz (hd 0)
+    have hgap : 0 < mExt ms ((0 : Fin (k + 1)).val + 1) -
+        mExt ms (0 : Fin (k + 1)).val := hm.mExt_gap_pos 0
+    have hcoef : 0 < (1 / 2 : ℝ) *
+        (mExt ms ((0 : Fin (k + 1)).val + 1) - mExt ms (0 : Fin (k + 1)).val) * ξ₂ 0 :=
+      mul_pos (mul_pos (by norm_num) hgap) (hξ₂ 0)
+    have hneg : -M 0 + qs 0 < 0 := by rw [hz]; linarith
+    nlinarith
+  have hq1 : qs (Fin.last k) < 1 := by
+    by_contra hn
+    have ho : qs (Fin.last k) = 1 := le_antisymm hmin.1.2.2 (not_lt.mp hn)
+    have hnonpos := hmin.last_deriv_nonpos ho (hd (Fin.last k))
+    have hgap : 0 < mExt ms ((Fin.last k).val + 1) - mExt ms (Fin.last k).val :=
+      hm.mExt_gap_pos (Fin.last k)
+    have hcoef : 0 < (1 / 2 : ℝ) *
+        (mExt ms ((Fin.last k).val + 1) - mExt ms (Fin.last k).val) * ξ₂ (Fin.last k) :=
+      mul_pos (mul_pos (by norm_num) hgap) (hξ₂ (Fin.last k))
+    have hpos : 0 < -M (Fin.last k) + qs (Fin.last k) := by rw [ho]; linarith
+    nlinarith
+  refine ⟨fun r hr => qExt_strict_succ hmin.1.1 hq0 hq1 hr, ?_⟩
+  intro r
+  exact parisiQ_eq_moment_of_isLocalMin_of_admissible ms qs r hm (hξ₂ r)
+    (hmin.isLocalMin_qUpdate ms qs hq0 hq1 r) (hX₀ r) (hξ r) (hξ' r)
 
 end
 
