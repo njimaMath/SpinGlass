@@ -51,7 +51,7 @@ noncomputable section
 /-! ### Spatial derivatives of a Cole-Hopf iterate -/
 
 /-- The recursively propagated first spatial derivative of a Cole-Hopf iterate. -/
-noncomputable def coleHopfIterateDeriv : (j : ℕ) → (Fin j → ℝ) → (Fin j → ℝ≥0)
+def coleHopfIterateDeriv : (j : ℕ) → (Fin j → ℝ) → (Fin j → ℝ≥0)
     → (ℝ → ℝ) → (ℝ → ℝ) → ℝ → ℝ
   | 0, _, _, _, G' => G'
   | j + 1, ms, vs, G, G' => fun x =>
@@ -61,7 +61,7 @@ noncomputable def coleHopfIterateDeriv : (j : ℕ) → (Fin j → ℝ) → (Fin 
         ∂gaussianReal 0 (vs 0)
 
 /-- The recursively propagated second spatial derivative of a Cole-Hopf iterate. -/
-noncomputable def coleHopfIterateDeriv2 : (j : ℕ) → (Fin j → ℝ) → (Fin j → ℝ≥0)
+def coleHopfIterateDeriv2 : (j : ℕ) → (Fin j → ℝ) → (Fin j → ℝ≥0)
     → (ℝ → ℝ) → (ℝ → ℝ) → (ℝ → ℝ) → ℝ → ℝ
   | 0, _, _, _, _, G'' => G''
   | j + 1, ms, vs, G, G', G'' => fun x =>
@@ -534,7 +534,7 @@ Here `vR = ξ'(q_{r+1}) - ξ'(q_r)` is the variance of the inner level and
 `vL = ξ'(q_r) - ξ'(q_{r-1})` is the variance of the outer level. The inner integral is
 `A_r'`, written in the `coleHopfQ` normal form supplied by the Cole--Hopf API, and the outer
 `coleHopfQ` is Talagrand's weight `W_{r-1}`. -/
-noncomputable def coleHopfSplitMoment (m m' : ℝ) (vR vL : ℝ≥0)
+def coleHopfSplitMoment (m m' : ℝ) (vR vL : ℝ≥0)
     (A A' : ℝ → ℝ) (x : ℝ) : ℝ :=
   ∫ z, (∫ w, A' (x + z + w) * coleHopfQ m vR A (x + z) w ∂gaussianReal 0 vR) ^ 2
       * coleHopfQ m' vL (coleHopf m vR A) x z ∂gaussianReal 0 vL
@@ -691,12 +691,9 @@ lemma tendsto_uniform_coleHopf_of_tendsto_var
   intro x
   rcases le_total v₀ (v a) with hle | hle
   · have hdiff : (((v a - v₀ : ℝ≥0) : ℝ)) ∈ Metric.ball (0 : ℝ) δ := by
-      rw [Metric.mem_ball, Real.dist_eq]
+      rw [Metric.mem_ball, Real.dist_eq, sub_zero, NNReal.coe_sub hle]
       change dist (v a : ℝ) (v₀ : ℝ) < δ at ha
-      have hleR : (v₀ : ℝ) ≤ (v a : ℝ) := mod_cast hle
-      rw [Real.dist_eq, abs_of_nonneg (sub_nonneg.mpr hleR)] at ha
-      rw [sub_zero, NNReal.coe_sub hle, abs_of_nonneg (sub_nonneg.mpr hleR)]
-      exact ha
+      simpa only [Real.dist_eq] using ha
     have hm := hball hdiff
     change coleHopfModulus m L (Real.toNNReal ((v a - v₀ : ℝ≥0) : ℝ)) < ε at hm
     rw [Real.toNNReal_coe] at hm
@@ -704,12 +701,9 @@ lemma tendsto_uniform_coleHopf_of_tendsto_var
 
   · rw [abs_sub_comm]
     have hdiff : (((v₀ - v a : ℝ≥0) : ℝ)) ∈ Metric.ball (0 : ℝ) δ := by
-      rw [Metric.mem_ball, Real.dist_eq]
+      rw [Metric.mem_ball, Real.dist_eq, sub_zero, NNReal.coe_sub hle]
       change dist (v a : ℝ) (v₀ : ℝ) < δ at ha
-      have hleR : (v a : ℝ) ≤ (v₀ : ℝ) := mod_cast hle
-      rw [Real.dist_eq, abs_of_nonpos (sub_nonpos.mpr hleR)] at ha
-      rw [sub_zero, NNReal.coe_sub hle, abs_of_nonneg (sub_nonneg.mpr hleR)]
-      linarith
+      simpa only [Real.dist_eq, abs_sub_comm] using ha
     have hm := hball hdiff
     change coleHopfModulus m L (Real.toNNReal ((v₀ - v a : ℝ≥0) : ℝ)) < ε at hm
     rw [Real.toNNReal_coe] at hm
@@ -1134,6 +1128,12 @@ def qUpdate {k : ℕ} (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) (u : ℝ) :
     Fin (k + 1) → ℝ :=
   Function.update qs r u
 
+private lemma qUpdate_eq_of_eq {k : ℕ} (qs : Fin (k + 1) → ℝ)
+    (r : Fin (k + 1)) {u : ℝ} (hu : qs r = u) : qUpdate qs r u = qs := by
+  subst u
+  funext p
+  simp [qUpdate]
+
 @[simp] lemma qUpdate_self {k : ℕ} (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) (u : ℝ) :
     qUpdate qs r u r = u := by
   simp [qUpdate]
@@ -1311,48 +1311,41 @@ lemma IsParisiQMinimizer.le_qUpdate {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} {ms :
     parisiFunctional ξ h ms qs ≤ parisiFunctional ξ h ms (qUpdate qs r u) :=
   hmin.2 _ (hmin.1.qUpdate r hu0 hu1 hleft hright)
 
-/-- If both endpoint inequalities are strict, admissible global minimality gives an ordinary
-local minimum along every overlap coordinate. -/
-lemma IsParisiQMinimizer.isLocalMin_qUpdate
-    {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ)
-    (hmin : IsParisiQMinimizer ξ h ms qs) (hq0 : 0 < qs 0)
-    (hq1 : qs (Fin.last k) < 1) (r : Fin (k + 1)) :
-    IsLocalMin (fun u => parisiFunctional ξ h ms (qUpdate qs r u)) (qs r) := by
+private lemma parisiQMin_isLocalMin {k : ℕ} {qs : Fin (k + 1) → ℝ}
+    {F : (Fin (k + 1) → ℝ) → ℝ}
+    (hmin : ParisiQAdmissible qs ∧ ∀ qs', ParisiQAdmissible qs' → F qs ≤ F qs')
+    (hq0 : 0 < qs 0) (hq1 : qs (Fin.last k) < 1) (r : Fin (k + 1)) :
+    IsLocalMin (fun u => F (qUpdate qs r u)) (qs r) := by
   have hu0 : ∀ᶠ u in nhds (qs r), 0 ≤ u :=
     eventually_ge_nhds (hq0.trans_le (hmin.1.monotone (Fin.zero_le r)))
   have hu1 : ∀ᶠ u in nhds (qs r), u ≤ 1 :=
     eventually_le_nhds ((hmin.1.monotone (Fin.le_last r)).trans_lt hq1)
   have hleft : ∀ᶠ u in nhds (qs r), ∀ p : Fin (k + 1), p < r → qs p < u := by
-    have hall : ∀ᶠ u in nhds (qs r), ∀ p ∈ Finset.univ, p < r → qs p < u :=
-      (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
-        by_cases hp : p < r
-        · filter_upwards [eventually_gt_nhds (hmin.1.1 hp)] with u hu
-          exact fun _ => hu
-        · exact Filter.Eventually.of_forall fun _ hpr => (hp hpr).elim)
-    simpa using hall
+    exact Filter.eventually_all.2 (fun p => by
+      by_cases hp : p < r
+      · filter_upwards [eventually_gt_nhds (hmin.1.1 hp)] with u hu
+        exact fun _ => hu
+      · exact Filter.Eventually.of_forall fun _ hpr => (hp hpr).elim)
   have hright : ∀ᶠ u in nhds (qs r), ∀ p : Fin (k + 1), r < p → u < qs p := by
-    have hall : ∀ᶠ u in nhds (qs r), ∀ p ∈ Finset.univ, r < p → u < qs p :=
-      (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
-        by_cases hp : r < p
-        · filter_upwards [eventually_lt_nhds (hmin.1.1 hp)] with u hu
-          exact fun _ => hu
-        · exact Filter.Eventually.of_forall fun _ hrp => (hp hrp).elim)
-    simpa using hall
+    exact Filter.eventually_all.2 (fun p => by
+      by_cases hp : r < p
+      · filter_upwards [eventually_lt_nhds (hmin.1.1 hp)] with u hu
+        exact fun _ => hu
+      · exact Filter.Eventually.of_forall fun _ hrp => (hp hrp).elim)
   have hle : ∀ᶠ u in nhds (qs r),
-      parisiFunctional ξ h ms qs ≤ parisiFunctional ξ h ms (qUpdate qs r u) := by
+      F qs ≤ F (qUpdate qs r u) := by
     filter_upwards [hu0, hu1, hleft, hright] with u hu0 hu1 hleft hright
-    exact hmin.le_qUpdate r hu0 hu1 hleft hright
+    exact hmin.2 _ (hmin.1.qUpdate r hu0 hu1 hleft hright)
   change ∀ᶠ u in nhds (qs r),
-    parisiFunctional ξ h ms (qUpdate qs r (qs r)) ≤
-      parisiFunctional ξ h ms (qUpdate qs r u)
+    F (qUpdate qs r (qs r)) ≤
+      F (qUpdate qs r u)
   simpa [qUpdate] using hle
 
-/-- At the lower endpoint, constrained minimality forces a nonnegative right derivative. -/
-lemma IsParisiQMinimizer.first_deriv_nonneg
-    {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ}
-    (hmin : IsParisiQMinimizer ξ h ms qs) (hq0 : qs 0 = 0) {d : ℝ}
-    (hd : HasDerivAt (fun u => parisiFunctional ξ h ms (qUpdate qs 0 u)) d (qs 0)) :
-    0 ≤ d := by
+private lemma parisiQMin_first_deriv_nonneg {k : ℕ} {qs : Fin (k + 1) → ℝ}
+    {F : (Fin (k + 1) → ℝ) → ℝ}
+    (hmin : ParisiQAdmissible qs ∧ ∀ qs', ParisiQAdmissible qs' → F qs ≤ F qs')
+    (hq0 : qs 0 = 0) {d : ℝ}
+    (hd : HasDerivAt (fun u => F (qUpdate qs 0 u)) d (qs 0)) : 0 ≤ d := by
   have hq1 : qs 0 < 1 := by rw [hq0]; norm_num
   have hadm : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)),
       ParisiQAdmissible (qUpdate qs 0 u) := by
@@ -1363,17 +1356,14 @@ lemma IsParisiQMinimizer.first_deriv_nonneg
       (eventually_le_nhds hq1).filter_mono inf_le_left
     have hright : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)),
         ∀ p : Fin (k + 1), 0 < p → u < qs p := by
-      have hall : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)), ∀ p ∈ Finset.univ,
-          (0 : Fin (k + 1)) < p → u < qs p :=
-        (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
-          by_cases hp : (0 : Fin (k + 1)) < p
-          · exact (eventually_lt_nhds (hmin.1.1 hp)).filter_mono inf_le_left |>.mono
-              fun _ hu _ => hu
-          · exact Filter.Eventually.of_forall fun _ hp' => (hp hp').elim)
-      simpa using hall
+      exact Filter.eventually_all.2 (fun p => by
+        by_cases hp : (0 : Fin (k + 1)) < p
+        · exact (eventually_lt_nhds (hmin.1.1 hp)).filter_mono inf_le_left |>.mono
+            fun _ hu _ => hu
+        · exact Filter.Eventually.of_forall fun _ hp' => (hp hp').elim)
     filter_upwards [hu0, hu1, hright] with u hu0 hu1 hright
     exact hmin.1.qUpdate 0 hu0 hu1 (fun p hp => (Fin.not_lt_zero p hp).elim) hright
-  have hlocal : IsLocalMinOn (fun u => parisiFunctional ξ h ms (qUpdate qs 0 u))
+  have hlocal : IsLocalMinOn (fun u => F (qUpdate qs 0 u))
       (Ici (qs 0)) (qs 0) := by
     filter_upwards [hadm] with u hu
     simpa [qUpdate] using hmin.2 _ hu
@@ -1388,13 +1378,12 @@ lemma IsParisiQMinimizer.first_deriv_nonneg
   change 0 ≤ (1 : ℝ) * d at hd_nonneg
   simpa using hd_nonneg
 
-/-- At the upper endpoint, constrained minimality forces a nonpositive left derivative. -/
-lemma IsParisiQMinimizer.last_deriv_nonpos
-    {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ}
-    (hmin : IsParisiQMinimizer ξ h ms qs) (hq1 : qs (Fin.last k) = 1) {d : ℝ}
-    (hd : HasDerivAt
-      (fun u => parisiFunctional ξ h ms (qUpdate qs (Fin.last k) u)) d
-      (qs (Fin.last k))) : d ≤ 0 := by
+private lemma parisiQMin_last_derivWithin_nonpos {k : ℕ} {qs : Fin (k + 1) → ℝ}
+    {F : (Fin (k + 1) → ℝ) → ℝ}
+    (hmin : ParisiQAdmissible qs ∧ ∀ qs', ParisiQAdmissible qs' → F qs ≤ F qs')
+    (hq1 : qs (Fin.last k) = 1) {d : ℝ}
+    (hd : HasDerivWithinAt (fun u => F (qUpdate qs (Fin.last k) u)) d
+      (Iic (qs (Fin.last k))) (qs (Fin.last k))) : d ≤ 0 := by
   have hq0 : 0 < qs (Fin.last k) := by rw [hq1]; norm_num
   have hadm : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))),
       ParisiQAdmissible (qUpdate qs (Fin.last k) u) := by
@@ -1405,19 +1394,16 @@ lemma IsParisiQMinimizer.last_deriv_nonpos
       exact hq1 ▸ hu
     have hleft : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))),
         ∀ p : Fin (k + 1), p < Fin.last k → qs p < u := by
-      have hall : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))),
-          ∀ p ∈ Finset.univ, p < Fin.last k → qs p < u :=
-        (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
-          by_cases hp : p < Fin.last k
-          · exact (eventually_gt_nhds (hmin.1.1 hp)).filter_mono inf_le_left |>.mono
-              fun _ hu _ => hu
-          · exact Filter.Eventually.of_forall fun _ hp' => (hp hp').elim)
-      simpa using hall
+      exact Filter.eventually_all.2 (fun p => by
+        by_cases hp : p < Fin.last k
+        · exact (eventually_gt_nhds (hmin.1.1 hp)).filter_mono inf_le_left |>.mono
+            fun _ hu _ => hu
+        · exact Filter.Eventually.of_forall fun _ hp' => (hp hp').elim)
     filter_upwards [hu0, hu1, hleft] with u hu0 hu1 hleft
     exact hmin.1.qUpdate (Fin.last k) hu0 hu1 hleft
       (fun p hp => (not_lt_of_ge (Fin.le_last p) hp).elim)
   have hlocal : IsLocalMinOn
-      (fun u => parisiFunctional ξ h ms (qUpdate qs (Fin.last k) u))
+      (fun u => F (qUpdate qs (Fin.last k) u))
       (Iic (qs (Fin.last k))) (qs (Fin.last k)) := by
     filter_upwards [hadm] with u hu
     simpa [qUpdate] using hmin.2 _ hu
@@ -1431,9 +1417,35 @@ lemma IsParisiQMinimizer.last_deriv_nonpos
         exact Icc_subset_Iic_self) using 1
     ring
   have hd_nonneg := hlocal.hasFDerivWithinAt_nonneg
-    hd.hasFDerivAt.hasFDerivWithinAt htangent
+    hd.hasFDerivWithinAt htangent
   change 0 ≤ (-1 : ℝ) * d at hd_nonneg
   linarith
+
+/-- If both endpoint inequalities are strict, admissible global minimality gives an ordinary
+local minimum along every overlap coordinate. -/
+lemma IsParisiQMinimizer.isLocalMin_qUpdate
+    {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ)
+    (hmin : IsParisiQMinimizer ξ h ms qs) (hq0 : 0 < qs 0)
+    (hq1 : qs (Fin.last k) < 1) (r : Fin (k + 1)) :
+    IsLocalMin (fun u => parisiFunctional ξ h ms (qUpdate qs r u)) (qs r) :=
+  parisiQMin_isLocalMin hmin hq0 hq1 r
+
+/-- At the lower endpoint, constrained minimality forces a nonnegative right derivative. -/
+lemma IsParisiQMinimizer.first_deriv_nonneg
+    {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ}
+    (hmin : IsParisiQMinimizer ξ h ms qs) (hq0 : qs 0 = 0) {d : ℝ}
+    (hd : HasDerivAt (fun u => parisiFunctional ξ h ms (qUpdate qs 0 u)) d (qs 0)) :
+    0 ≤ d :=
+  parisiQMin_first_deriv_nonneg hmin hq0 hd
+
+/-- At the upper endpoint, constrained minimality forces a nonpositive left derivative. -/
+lemma IsParisiQMinimizer.last_deriv_nonpos
+    {ξ : ℝ → ℝ} {h : ℝ} {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ}
+    (hmin : IsParisiQMinimizer ξ h ms qs) (hq1 : qs (Fin.last k) = 1) {d : ℝ}
+    (hd : HasDerivAt
+      (fun u => parisiFunctional ξ h ms (qUpdate qs (Fin.last k) u)) d
+      (qs (Fin.last k))) : d ≤ 0 :=
+  parisiQMin_last_derivWithin_nonpos hmin hq1 hd.hasDerivWithinAt
 
 /-- Every consecutive mass gap is positive under (14.103), including the first and last gaps
 and the vacuous-mass case `k = 0`. -/
@@ -1530,6 +1542,14 @@ lemma abs_parisiLogCoshTerminalDeriv2_le_one (h x : ℝ) :
   rw [parisiLogCoshTerminalDeriv2, abs_of_nonneg hnonneg]
   nlinarith [sq_nonneg (Real.tanh (h + x))]
 
+private def coleHopfIterate_logCosh_regular {j : ℕ} (ms : Fin j → ℝ)
+    (vs : Fin j → ℝ≥0) (h : ℝ) (hpos : ∀ i, 0 < ms i) :=
+  coleHopfIterate_deriv_regular ms vs
+    (hasDerivAt_parisiLogCoshTerminal h) (hasDerivAt_parisiLogCoshTerminalDeriv h)
+    (continuous_parisiLogCoshTerminalDeriv2 h)
+    (fun x => (abs_parisiLogCoshTerminalDeriv_lt_one h x).le)
+    (abs_parisiLogCoshTerminalDeriv2_le_one h) hpos
+
 /-- The terminal Cole--Hopf level with exponent one is absorbed exactly. -/
 lemma coleHopf_one_parisiLogCoshTerminal (h : ℝ) (v : ℝ≥0) (x : ℝ) :
     coleHopf 1 v (parisiLogCoshTerminal h) x =
@@ -1598,61 +1618,17 @@ theorem coleHopfIterateDeriv_parisiLogCoshTerminal_translate {j : ℕ}
         (parisiLogCoshTerminalDeriv h) 0 =
       coleHopfIterateDeriv j ms vs (parisiLogCoshTerminal 0)
         (parisiLogCoshTerminalDeriv 0) h := by
-  let B : ℝ → ℝ := coleHopfIterate j ms vs (parisiLogCoshTerminal 0)
-  let B' : ℝ → ℝ := coleHopfIterateDeriv j ms vs (parisiLogCoshTerminal 0)
-    (parisiLogCoshTerminalDeriv 0)
-  obtain ⟨hB, C, hB', hB''c, hB'b, hB''b⟩ :=
-    coleHopfIterate_deriv_regular ms vs
-      (hasDerivAt_parisiLogCoshTerminal 0)
-      (hasDerivAt_parisiLogCoshTerminalDeriv 0)
-      (continuous_parisiLogCoshTerminalDeriv2 0)
-      (fun x => (abs_parisiLogCoshTerminalDeriv_lt_one 0 x).le)
-      (abs_parisiLogCoshTerminalDeriv2_le_one 0) hpos
-  obtain ⟨hAh, C', hAh', hAh''c, hAh'b, hAh''b⟩ :=
-    coleHopfIterate_deriv_regular ms vs
-      (hasDerivAt_parisiLogCoshTerminal h)
-      (hasDerivAt_parisiLogCoshTerminalDeriv h)
-      (continuous_parisiLogCoshTerminalDeriv2 h)
-      (fun x => (abs_parisiLogCoshTerminalDeriv_lt_one h x).le)
-      (abs_parisiLogCoshTerminalDeriv2_le_one h) hpos
-  have htranslate : coleHopfIterate j ms vs (parisiLogCoshTerminal h) =
-      fun x => B (h + x) := by
-    funext x
-    calc
-      coleHopfIterate j ms vs (parisiLogCoshTerminal h) x =
-          parisiRec j ms (fun p => gaussianReal 0 (vs p))
-            (fun zs => parisiLogCoshTerminal h (x + ∑ p, zs p)) :=
-        (parisiRec_gaussian_comp_add_sum (L := 1) ms vs hpos
-          (measurable_of_hasDerivAt (hasDerivAt_parisiLogCoshTerminal h))
-          (fun y z => by simpa only [one_mul] using
-            abs_parisiLogCoshTerminal_sub_le h y z) x).symm
-      _ = parisiRec j ms (fun p => gaussianReal 0 (vs p))
-            (fun zs => parisiLogCoshTerminal 0 (h + x + ∑ p, zs p)) := by
-        congr 1
-        funext zs
-        unfold parisiLogCoshTerminal
-        apply congrArg Real.log
-        apply congrArg Real.cosh
-        ring
-      _ = coleHopfIterate j ms vs (parisiLogCoshTerminal 0) (h + x) :=
-        parisiRec_gaussian_comp_add_sum (L := 1) ms vs hpos
-          (measurable_of_hasDerivAt (hasDerivAt_parisiLogCoshTerminal 0))
-          (fun y z => by simpa only [one_mul] using
-            abs_parisiLogCoshTerminal_sub_le 0 y z) (h + x)
-      _ = B (h + x) := rfl
-  have hadd : HasDerivAt (fun x : ℝ => h + x) 1 0 := by
-    simpa using (hasDerivAt_id (0 : ℝ)).const_add h
-  have hrightRaw := (hB (h + 0)).comp 0 hadd
-  have hfunadd :
-      (coleHopfIterate j ms vs (parisiLogCoshTerminal 0) ∘ HAdd.hAdd h) =
-        fun x : ℝ => B (h + x) := by rfl
-  rw [hfunadd] at hrightRaw
-  have hdraw :
-      coleHopfIterateDeriv j ms vs (parisiLogCoshTerminal 0)
-          (parisiLogCoshTerminalDeriv 0) (h + 0) * 1 = B' h := by
-    simp [B']
-  rw [hdraw, ← htranslate] at hrightRaw
-  exact HasDerivAt.unique (hAh 0) hrightRaw
+  have hG : parisiLogCoshTerminal h = fun y => parisiLogCoshTerminal 0 (h + y) := by
+    funext y
+    simp only [parisiLogCoshTerminal, zero_add]
+  have hG' : parisiLogCoshTerminalDeriv h =
+      fun y => parisiLogCoshTerminalDeriv 0 (h + y) := by
+    funext y
+    simp only [parisiLogCoshTerminalDeriv, zero_add]
+  rw [hG, hG']
+  simpa only [add_zero] using
+    coleHopfIterateDeriv_translate ms vs (parisiLogCoshTerminal 0)
+      (parisiLogCoshTerminalDeriv 0) h 0
 
 /-- The spatial derivative of the concrete recursion is nonzero when the external field is
 nonzero. -/
@@ -1667,12 +1643,7 @@ theorem coleHopfIterateDeriv_parisiLogCoshTerminal_ne_zero {j : ℕ}
   let B'' : ℝ → ℝ := coleHopfIterateDeriv2 j ms vs (parisiLogCoshTerminal 0)
     (parisiLogCoshTerminalDeriv 0) (parisiLogCoshTerminalDeriv2 0)
   obtain ⟨hB, C, hB', hB''c, hB'b, hB''b⟩ :=
-    coleHopfIterate_deriv_regular ms vs
-      (hasDerivAt_parisiLogCoshTerminal 0)
-      (hasDerivAt_parisiLogCoshTerminalDeriv 0)
-      (continuous_parisiLogCoshTerminalDeriv2 0)
-      (fun x => (abs_parisiLogCoshTerminalDeriv_lt_one 0 x).le)
-      (abs_parisiLogCoshTerminalDeriv2_le_one 0) hpos
+    coleHopfIterate_logCosh_regular ms vs 0 hpos
   have hterminalPos : ∀ x, 0 < parisiLogCoshTerminalDeriv2 0 x := by
     intro x
     simpa [parisiLogCoshTerminalDeriv2] using
@@ -1721,12 +1692,7 @@ theorem coleHopfIterateDeriv_parisiLogCoshTerminal_ne_zero {j : ℕ}
       rw [hBzero] at hlt
       exact ne_of_gt hlt
   obtain ⟨hAh, C', hAh', hAh''c, hAh'b, hAh''b⟩ :=
-    coleHopfIterate_deriv_regular ms vs
-      (hasDerivAt_parisiLogCoshTerminal h)
-      (hasDerivAt_parisiLogCoshTerminalDeriv h)
-      (continuous_parisiLogCoshTerminalDeriv2 h)
-      (fun x => (abs_parisiLogCoshTerminalDeriv_lt_one h x).le)
-      (abs_parisiLogCoshTerminalDeriv2_le_one h) hpos
+    coleHopfIterate_logCosh_regular ms vs h hpos
   have htranslate : coleHopfIterate j ms vs (parisiLogCoshTerminal h) =
       fun x => B (h + x) := by
     funext x
@@ -1831,19 +1797,19 @@ def parisiQSuffixVars (ξ : ℝ → ℝ) {k : ℕ} (qs : Fin (k + 1) → ℝ)
 
 /-- Talagrand's `$A_{r+2}$`, namely the part of the recursion strictly inside the two levels
 whose variance split changes when the free coordinate represented by `r` moves. -/
-noncomputable def parisiQSuffix (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
+def parisiQSuffix (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
     (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) : ℝ → ℝ :=
   coleHopfIterate (k - r.val) (parisiQSuffixMasses ms r) (parisiQSuffixVars ξ qs r)
     (parisiLogCoshTerminal h)
 
 /-- The canonical first derivative of `parisiQSuffix`. -/
-noncomputable def parisiQSuffixDeriv (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
+def parisiQSuffixDeriv (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
     (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) : ℝ → ℝ :=
   coleHopfIterateDeriv (k - r.val) (parisiQSuffixMasses ms r) (parisiQSuffixVars ξ qs r)
     (parisiLogCoshTerminal h) (parisiLogCoshTerminalDeriv h)
 
 /-- The canonical second derivative of `parisiQSuffix`. -/
-noncomputable def parisiQSuffixDeriv2 (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
+def parisiQSuffixDeriv2 (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
     (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) : ℝ → ℝ :=
   coleHopfIterateDeriv2 (k - r.val) (parisiQSuffixMasses ms r) (parisiQSuffixVars ξ qs r)
     (parisiLogCoshTerminal h) (parisiLogCoshTerminalDeriv h)
@@ -1873,34 +1839,27 @@ lemma parisiQSuffixDeriv_qUpdate (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
 lemma parisiQSuffix_translate (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
     (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) (x : ℝ) :
     parisiQSuffix ξ h ms qs r x = parisiQSuffix ξ 0 ms qs r (h + x) := by
-  have hterminal : parisiLogCoshTerminal h = fun y => parisiLogCoshTerminal 0 (h + y) := by
+  have hG : parisiLogCoshTerminal h = fun y => parisiLogCoshTerminal 0 (h + y) := by
     funext y
-    unfold parisiLogCoshTerminal
-    apply congrArg Real.log
-    apply congrArg Real.cosh
-    ring
+    simp only [parisiLogCoshTerminal, zero_add]
   unfold parisiQSuffix
-  rw [hterminal]
-  exact coleHopfIterate_translate _ _ _ h x
+  rw [hG]
+  exact coleHopfIterate_translate _ _ (parisiLogCoshTerminal 0) h x
 
 lemma parisiQSuffixDeriv_translate (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
     (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) (x : ℝ) :
     parisiQSuffixDeriv ξ h ms qs r x = parisiQSuffixDeriv ξ 0 ms qs r (h + x) := by
-  have hterminal : parisiLogCoshTerminal h = fun y => parisiLogCoshTerminal 0 (h + y) := by
+  have hG : parisiLogCoshTerminal h = fun y => parisiLogCoshTerminal 0 (h + y) := by
     funext y
-    unfold parisiLogCoshTerminal
-    apply congrArg Real.log
-    apply congrArg Real.cosh
-    ring
-  have hterminal' : parisiLogCoshTerminalDeriv h =
+    simp only [parisiLogCoshTerminal, zero_add]
+  have hG' : parisiLogCoshTerminalDeriv h =
       fun y => parisiLogCoshTerminalDeriv 0 (h + y) := by
     funext y
-    unfold parisiLogCoshTerminalDeriv
-    apply congrArg Real.tanh
-    ring
+    simp only [parisiLogCoshTerminalDeriv, zero_add]
   unfold parisiQSuffixDeriv
-  rw [hterminal, hterminal']
-  exact coleHopfIterateDeriv_translate _ _ _ _ h x
+  rw [hG, hG']
+  exact coleHopfIterateDeriv_translate _ _
+    (parisiLogCoshTerminal 0) (parisiLogCoshTerminalDeriv 0) h x
 
 /-- The actual recursive suffix has the regularity and uniform first-derivative bound required
 by the split derivative theorem. -/
@@ -2214,7 +2173,7 @@ theorem tendsto_uniform_parisiX₀_qUpdate
 
 /-- Talagrand's concrete moment
 `E(W₁ ⋯ W_{r-1} A'_r(ζ_r)^2)` for the overlap coordinate represented by `r`. -/
-noncomputable def parisiQMoment (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
+def parisiQMoment (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
     (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) : ℝ :=
   if r.val = 0 then
     coleHopfSplitMoment (mExt ms (r.val + 1)) (mExt ms r.val)
@@ -2842,20 +2801,11 @@ theorem parisiFunctional_eq_theta_fin_sum (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
         + (1 / 2) * ∑ p : Fin (k + 1),
             parisiTheta ξ (qs p) * (mExt ms (p.val + 1) - mExt ms p.val)
         - (1 / 2) * parisiTheta ξ 1 := by
-  rw [parisiFunctional_eq_theta_sum]
-  have hsum :
-      (∑ p ∈ Finset.range (k + 1),
-          parisiTheta ξ (qExt qs (p + 1)) * (mExt ms (p + 1) - mExt ms p))
-        = ∑ p : Fin (k + 1),
-            parisiTheta ξ (qs p) * (mExt ms (p.val + 1) - mExt ms p.val) := by
-    rw [← Fin.sum_univ_eq_sum_range]
-    refine Finset.sum_congr rfl ?_
-    intro p _
-    rw [qExt_succ_of_lt qs p.isLt]
-  rw [hsum]
+  rw [parisiFunctional_eq_theta_sum, ← Fin.sum_univ_eq_sum_range]
+  simp only [qExt_succ_of_lt qs (Fin.isLt _)]
 
 /-- The part of the theta-sum independent of the coordinate `q_{r+1}`. -/
-noncomputable def parisiQConst (ξ : ℝ → ℝ) {k : ℕ}
+def parisiQConst (ξ : ℝ → ℝ) {k : ℕ}
     (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) : ℝ :=
   Real.log 2
     + (1 / 2) * ∑ p ∈ Finset.univ.erase r,
@@ -2865,6 +2815,31 @@ noncomputable def parisiQConst (ξ : ℝ → ℝ) {k : ℕ}
 /-- Along one overlap coordinate, the full Parisi functional is a constant plus `X₀(q)` plus
 `(1 / 2) (m_r - m_{r-1}) θ(q)`. This is the form used in passing from the derivative of `X₀` to
 (14.220). -/
+private lemma parisiTheta_sum_qUpdate (ξ : ℝ → ℝ) {k : ℕ}
+    (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) (u : ℝ) :
+    (∑ p : Fin (k + 1),
+      parisiTheta ξ (qUpdate qs r u p) * (mExt ms (p.val + 1) - mExt ms p.val)) =
+    (∑ p ∈ Finset.univ.erase r,
+      parisiTheta ξ (qs p) * (mExt ms (p.val + 1) - mExt ms p.val)) +
+      parisiTheta ξ u * (mExt ms (r.val + 1) - mExt ms r.val) := by
+  classical
+  calc
+    (∑ p : Fin (k + 1),
+        parisiTheta ξ (qUpdate qs r u p) * (mExt ms (p.val + 1) - mExt ms p.val))
+        = (∑ p ∈ Finset.univ.erase r,
+            parisiTheta ξ (qUpdate qs r u p) * (mExt ms (p.val + 1) - mExt ms p.val))
+          + parisiTheta ξ (qUpdate qs r u r)
+              * (mExt ms (r.val + 1) - mExt ms r.val) := by
+        rw [Finset.sum_erase_add _ _ (Finset.mem_univ r)]
+    _ = (∑ p ∈ Finset.univ.erase r,
+            parisiTheta ξ (qs p) * (mExt ms (p.val + 1) - mExt ms p.val))
+          + parisiTheta ξ u * (mExt ms (r.val + 1) - mExt ms r.val) := by
+        congr 1
+        · refine Finset.sum_congr rfl ?_
+          intro p hp
+          rw [qUpdate_of_ne qs u (Finset.ne_of_mem_erase hp)]
+        · rw [qUpdate_self]
+
 theorem parisiFunctional_qUpdate_eq (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
     (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) (u : ℝ) :
     parisiFunctional ξ h ms (qUpdate qs r u)
@@ -2872,30 +2847,7 @@ theorem parisiFunctional_qUpdate_eq (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
         + (parisiX₀ ξ ms (qUpdate qs r u) (fun x => Real.log (Real.cosh (h + x)))
           + (1 / 2) * (mExt ms (r.val + 1) - mExt ms r.val) * parisiTheta ξ u) := by
   classical
-  rw [parisiFunctional_eq_theta_fin_sum]
-  have hsum :
-      (∑ p : Fin (k + 1),
-          parisiTheta ξ (qUpdate qs r u p) * (mExt ms (p.val + 1) - mExt ms p.val))
-        = (∑ p ∈ Finset.univ.erase r,
-            parisiTheta ξ (qs p) * (mExt ms (p.val + 1) - mExt ms p.val))
-          + parisiTheta ξ u * (mExt ms (r.val + 1) - mExt ms r.val) := by
-    calc
-      (∑ p : Fin (k + 1),
-          parisiTheta ξ (qUpdate qs r u p) * (mExt ms (p.val + 1) - mExt ms p.val))
-          = (∑ p ∈ Finset.univ.erase r,
-              parisiTheta ξ (qUpdate qs r u p) * (mExt ms (p.val + 1) - mExt ms p.val))
-            + parisiTheta ξ (qUpdate qs r u r)
-                * (mExt ms (r.val + 1) - mExt ms r.val) := by
-          rw [Finset.sum_erase_add _ _ (Finset.mem_univ r)]
-      _ = (∑ p ∈ Finset.univ.erase r,
-              parisiTheta ξ (qs p) * (mExt ms (p.val + 1) - mExt ms p.val))
-            + parisiTheta ξ u * (mExt ms (r.val + 1) - mExt ms r.val) := by
-          congr 1
-          · refine Finset.sum_congr rfl ?_
-            intro p hp
-            rw [qUpdate_of_ne qs u (Finset.ne_of_mem_erase hp)]
-          · rw [qUpdate_self]
-  rw [hsum]
+  rw [parisiFunctional_eq_theta_fin_sum, parisiTheta_sum_qUpdate]
   unfold parisiQConst
   ring
 
@@ -3205,7 +3157,7 @@ theorem hasDerivWithinAt_integral_of_dominated_left
 
 /-- The book-level moment after averaging the common site variable against its probability
 law. -/
-noncomputable def randomFieldParisiQMoment (μh : Measure ℝ) (ξ : ℝ → ℝ) {k : ℕ}
+def randomFieldParisiQMoment (μh : Measure ℝ) (ξ : ℝ → ℝ) {k : ℕ}
     (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) : ℝ :=
   ∫ h, parisiQMoment ξ h ms qs r ∂μh
 
@@ -3357,12 +3309,7 @@ theorem continuous_parisiQMoment_first_of_eq_zero {ξ : ℝ → ℝ} {k : ℕ}
     (parisiLevelVars ξ qs) (parisiLogCoshTerminal 0)
     (parisiLogCoshTerminalDeriv 0)
   obtain ⟨hB, C, hB', hB''c, hB'b, hB''b⟩ :=
-    coleHopfIterate_deriv_regular (parisiLevelMasses ms) (parisiLevelVars ξ qs)
-      (hasDerivAt_parisiLogCoshTerminal 0)
-      (hasDerivAt_parisiLogCoshTerminalDeriv 0)
-      (continuous_parisiLogCoshTerminalDeriv2 0)
-      (fun x => (abs_parisiLogCoshTerminalDeriv_lt_one 0 x).le)
-      (abs_parisiLogCoshTerminalDeriv2_le_one 0) hlevelpos
+    coleHopfIterate_logCosh_regular (parisiLevelMasses ms) (parisiLevelVars ξ qs) 0 hlevelpos
   have hB'c : Continuous B' :=
     continuous_iff_continuousAt.2 fun x => (hB' x).continuousAt
   have heq : (fun h => parisiQMoment ξ h ms qs 0) = fun h => B' h ^ 2 := by
@@ -3644,36 +3591,8 @@ lemma IsRandomFieldParisiQMinimizer.isLocalMin_qUpdate
     (qs : Fin (k + 1) → ℝ) (hmin : IsRandomFieldParisiQMinimizer μh ξ ms qs)
     (hq0 : 0 < qs 0) (hq1 : qs (Fin.last k) < 1) (r : Fin (k + 1)) :
     IsLocalMin (fun u => randomFieldParisiFunctional μh ξ ms (qUpdate qs r u))
-      (qs r) := by
-  have hu0 : ∀ᶠ u in nhds (qs r), 0 ≤ u :=
-    eventually_ge_nhds (hq0.trans_le (hmin.1.monotone (Fin.zero_le r)))
-  have hu1 : ∀ᶠ u in nhds (qs r), u ≤ 1 :=
-    eventually_le_nhds ((hmin.1.monotone (Fin.le_last r)).trans_lt hq1)
-  have hleft : ∀ᶠ u in nhds (qs r), ∀ p : Fin (k + 1), p < r → qs p < u := by
-    have hall : ∀ᶠ u in nhds (qs r), ∀ p ∈ Finset.univ, p < r → qs p < u :=
-      (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
-        by_cases hp : p < r
-        · filter_upwards [eventually_gt_nhds (hmin.1.1 hp)] with u hu
-          exact fun _ => hu
-        · exact Filter.Eventually.of_forall fun _ hpr => (hp hpr).elim)
-    simpa using hall
-  have hright : ∀ᶠ u in nhds (qs r), ∀ p : Fin (k + 1), r < p → u < qs p := by
-    have hall : ∀ᶠ u in nhds (qs r), ∀ p ∈ Finset.univ, r < p → u < qs p :=
-      (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
-        by_cases hp : r < p
-        · filter_upwards [eventually_lt_nhds (hmin.1.1 hp)] with u hu
-          exact fun _ => hu
-        · exact Filter.Eventually.of_forall fun _ hrp => (hp hrp).elim)
-    simpa using hall
-  have hle : ∀ᶠ u in nhds (qs r),
-      randomFieldParisiFunctional μh ξ ms qs ≤
-        randomFieldParisiFunctional μh ξ ms (qUpdate qs r u) := by
-    filter_upwards [hu0, hu1, hleft, hright] with u hu0 hu1 hleft hright
-    exact hmin.le_qUpdate r hu0 hu1 hleft hright
-  change ∀ᶠ u in nhds (qs r),
-    randomFieldParisiFunctional μh ξ ms (qUpdate qs r (qs r)) ≤
-      randomFieldParisiFunctional μh ξ ms (qUpdate qs r u)
-  simpa [qUpdate] using hle
+      (qs r) :=
+  parisiQMin_isLocalMin hmin hq0 hq1 r
 
 /-- At the lower endpoint, constrained random-field minimality forces a nonnegative right
 derivative. -/
@@ -3683,42 +3602,8 @@ lemma IsRandomFieldParisiQMinimizer.first_deriv_nonneg
     (hq0 : qs 0 = 0) {d : ℝ}
     (hd : HasDerivAt
       (fun u => randomFieldParisiFunctional μh ξ ms (qUpdate qs 0 u)) d (qs 0)) :
-    0 ≤ d := by
-  have hq1 : qs 0 < 1 := by rw [hq0]; norm_num
-  have hadm : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)),
-      ParisiQAdmissible (qUpdate qs 0 u) := by
-    have hu0 : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)), 0 ≤ u := by
-      filter_upwards [self_mem_nhdsWithin] with u hu
-      exact hq0 ▸ hu
-    have hu1 : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)), u ≤ 1 :=
-      (eventually_le_nhds hq1).filter_mono inf_le_left
-    have hright : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)),
-        ∀ p : Fin (k + 1), 0 < p → u < qs p := by
-      have hall : ∀ᶠ u in nhdsWithin (qs 0) (Ici (qs 0)), ∀ p ∈ Finset.univ,
-          (0 : Fin (k + 1)) < p → u < qs p :=
-        (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
-          by_cases hp : (0 : Fin (k + 1)) < p
-          · exact (eventually_lt_nhds (hmin.1.1 hp)).filter_mono inf_le_left |>.mono
-              fun _ hu _ => hu
-          · exact Filter.Eventually.of_forall fun _ hp' => (hp hp').elim)
-      simpa using hall
-    filter_upwards [hu0, hu1, hright] with u hu0 hu1 hright
-    exact hmin.1.qUpdate 0 hu0 hu1 (fun p hp => (Fin.not_lt_zero p hp).elim) hright
-  have hlocal : IsLocalMinOn
-      (fun u => randomFieldParisiFunctional μh ξ ms (qUpdate qs 0 u))
-      (Ici (qs 0)) (qs 0) := by
-    filter_upwards [hadm] with u hu
-    simpa [qUpdate] using hmin.2 _ hu
-  have htangent : (1 : ℝ) ∈ posTangentConeAt (Ici (qs 0)) (qs 0) := by
-    convert sub_mem_posTangentConeAt_of_segment_subset
-      (s := Ici (qs 0)) (x := qs 0) (y := qs 0 + 1) (by
-        rw [segment_eq_Icc (by linarith : qs 0 ≤ qs 0 + 1)]
-        exact Icc_subset_Ici_self) using 1
-    ring
-  have hd_nonneg := hlocal.hasFDerivWithinAt_nonneg
-    hd.hasFDerivAt.hasFDerivWithinAt htangent
-  change 0 ≤ (1 : ℝ) * d at hd_nonneg
-  simpa using hd_nonneg
+    0 ≤ d :=
+  parisiQMin_first_deriv_nonneg hmin hq0 hd
 
 /-- At the upper endpoint, constrained random-field minimality forces a nonpositive left
 derivative. -/
@@ -3728,46 +3613,8 @@ lemma IsRandomFieldParisiQMinimizer.last_derivWithin_nonpos
     (hq1 : qs (Fin.last k) = 1) {d : ℝ}
     (hd : HasDerivWithinAt
       (fun u => randomFieldParisiFunctional μh ξ ms (qUpdate qs (Fin.last k) u)) d
-      (Iic (qs (Fin.last k))) (qs (Fin.last k))) : d ≤ 0 := by
-  have hq0 : 0 < qs (Fin.last k) := by rw [hq1]; norm_num
-  have hadm : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))),
-      ParisiQAdmissible (qUpdate qs (Fin.last k) u) := by
-    have hu0 : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))), 0 ≤ u :=
-      (eventually_ge_nhds hq0).filter_mono inf_le_left
-    have hu1 : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))), u ≤ 1 := by
-      filter_upwards [self_mem_nhdsWithin] with u hu
-      exact hq1 ▸ hu
-    have hleft : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))),
-        ∀ p : Fin (k + 1), p < Fin.last k → qs p < u := by
-      have hall : ∀ᶠ u in nhdsWithin (qs (Fin.last k)) (Iic (qs (Fin.last k))),
-          ∀ p ∈ Finset.univ, p < Fin.last k → qs p < u :=
-        (Filter.eventually_all_finset Finset.univ).2 (fun p _ => by
-          by_cases hp : p < Fin.last k
-          · exact (eventually_gt_nhds (hmin.1.1 hp)).filter_mono inf_le_left |>.mono
-              fun _ hu _ => hu
-          · exact Filter.Eventually.of_forall fun _ hp' => (hp hp').elim)
-      simpa using hall
-    filter_upwards [hu0, hu1, hleft] with u hu0 hu1 hleft
-    exact hmin.1.qUpdate (Fin.last k) hu0 hu1 hleft
-      (fun p hp => (not_lt_of_ge (Fin.le_last p) hp).elim)
-  have hlocal : IsLocalMinOn
-      (fun u => randomFieldParisiFunctional μh ξ ms (qUpdate qs (Fin.last k) u))
-      (Iic (qs (Fin.last k))) (qs (Fin.last k)) := by
-    filter_upwards [hadm] with u hu
-    simpa [qUpdate] using hmin.2 _ hu
-  have htangent : (-1 : ℝ) ∈
-      posTangentConeAt (Iic (qs (Fin.last k))) (qs (Fin.last k)) := by
-    convert sub_mem_posTangentConeAt_of_segment_subset
-      (s := Iic (qs (Fin.last k))) (x := qs (Fin.last k))
-      (y := qs (Fin.last k) - 1) (by
-        rw [segment_symm, segment_eq_Icc
-          (by linarith : qs (Fin.last k) - 1 ≤ qs (Fin.last k))]
-        exact Icc_subset_Iic_self) using 1
-    ring
-  have hd_nonneg := hlocal.hasFDerivWithinAt_nonneg
-    hd.hasFDerivWithinAt htangent
-  change 0 ≤ (-1 : ℝ) * d at hd_nonneg
-  linarith
+      (Iic (qs (Fin.last k))) (qs (Fin.last k))) : d ≤ 0 :=
+  parisiQMin_last_derivWithin_nonpos hmin hq1 hd
 
 /-- The full-derivative version of the constrained endpoint sign lemma. -/
 lemma IsRandomFieldParisiQMinimizer.last_deriv_nonpos
@@ -3777,7 +3624,7 @@ lemma IsRandomFieldParisiQMinimizer.last_deriv_nonpos
     (hd : HasDerivAt
       (fun u => randomFieldParisiFunctional μh ξ ms (qUpdate qs (Fin.last k) u)) d
       (qs (Fin.last k))) : d ≤ 0 :=
-  hmin.last_derivWithin_nonpos hq1 hd.hasDerivWithinAt
+  parisiQMin_last_derivWithin_nonpos hmin hq1 hd.hasDerivWithinAt
 
 /-- The random-field theta-sum written over the free overlap coordinates. -/
 theorem randomFieldParisiFunctional_eq_theta_fin_sum (μh : Measure ℝ) (ξ : ℝ → ℝ)
@@ -3787,17 +3634,8 @@ theorem randomFieldParisiFunctional_eq_theta_fin_sum (μh : Measure ℝ) (ξ : �
         + (1 / 2) * ∑ p : Fin (k + 1),
             parisiTheta ξ (qs p) * (mExt ms (p.val + 1) - mExt ms p.val)
         - (1 / 2) * parisiTheta ξ 1 := by
-  rw [randomFieldParisiFunctional_eq_theta_sum]
-  have hsum :
-      (∑ p ∈ Finset.range (k + 1),
-          parisiTheta ξ (qExt qs (p + 1)) * (mExt ms (p + 1) - mExt ms p))
-        = ∑ p : Fin (k + 1),
-            parisiTheta ξ (qs p) * (mExt ms (p.val + 1) - mExt ms p.val) := by
-    rw [← Fin.sum_univ_eq_sum_range]
-    refine Finset.sum_congr rfl ?_
-    intro p _
-    rw [qExt_succ_of_lt qs p.isLt]
-  rw [hsum]
+  rw [randomFieldParisiFunctional_eq_theta_sum, ← Fin.sum_univ_eq_sum_range]
+  simp only [qExt_succ_of_lt qs (Fin.isLt _)]
 
 /-- Along one overlap coordinate, the random-field functional is its averaged `X₀` plus the
 same theta term as in the deterministic-field functional. -/
@@ -3809,30 +3647,7 @@ theorem randomFieldParisiFunctional_qUpdate_eq (μh : Measure ℝ) (ξ : ℝ →
         + (randomFieldParisiX₀ μh ξ ms (qUpdate qs r u)
           + (1 / 2) * (mExt ms (r.val + 1) - mExt ms r.val) * parisiTheta ξ u) := by
   classical
-  rw [randomFieldParisiFunctional_eq_theta_fin_sum]
-  have hsum :
-      (∑ p : Fin (k + 1),
-          parisiTheta ξ (qUpdate qs r u p) * (mExt ms (p.val + 1) - mExt ms p.val))
-        = (∑ p ∈ Finset.univ.erase r,
-            parisiTheta ξ (qs p) * (mExt ms (p.val + 1) - mExt ms p.val))
-          + parisiTheta ξ u * (mExt ms (r.val + 1) - mExt ms r.val) := by
-    calc
-      (∑ p : Fin (k + 1),
-          parisiTheta ξ (qUpdate qs r u p) * (mExt ms (p.val + 1) - mExt ms p.val))
-          = (∑ p ∈ Finset.univ.erase r,
-              parisiTheta ξ (qUpdate qs r u p) * (mExt ms (p.val + 1) - mExt ms p.val))
-            + parisiTheta ξ (qUpdate qs r u r)
-                * (mExt ms (r.val + 1) - mExt ms r.val) := by
-          rw [Finset.sum_erase_add _ _ (Finset.mem_univ r)]
-      _ = (∑ p ∈ Finset.univ.erase r,
-              parisiTheta ξ (qs p) * (mExt ms (p.val + 1) - mExt ms p.val))
-            + parisiTheta ξ u * (mExt ms (r.val + 1) - mExt ms r.val) := by
-          congr 1
-          · refine Finset.sum_congr rfl ?_
-            intro p hp
-            rw [qUpdate_of_ne qs u (Finset.ne_of_mem_erase hp)]
-          · rw [qUpdate_self]
-  rw [hsum]
+  rw [randomFieldParisiFunctional_eq_theta_fin_sum, parisiTheta_sum_qUpdate]
   unfold parisiQConst
   ring
 
@@ -4097,12 +3912,8 @@ theorem randomFieldParisiQ_first_pos_of_isMin
   let F : ℝ → ℝ := fun u =>
     randomFieldParisiFunctional μh ξ ms (qUpdate qs 0 u)
   have hM0 : 0 < M 0 := by
-    have hsame : qUpdate qs 0 0 = qs := by
-      funext p
-      by_cases hp : p = 0
-      · subst p
-        simp [qUpdate, hqzero]
-      · simp [qUpdate, hp]
+    have hsame : qUpdate qs 0 0 = qs :=
+      qUpdate_eq_of_eq qs 0 hqzero
     change 0 < randomFieldParisiQMoment μh ξ ms (qUpdate qs 0 0) 0
     rw [hsame]
     exact randomFieldParisiQMoment_first_pos qs hm hqzero hμ
@@ -4128,30 +3939,16 @@ theorem randomFieldParisiQ_first_pos_of_isMin
   have hbpos : 0 < b := by
     dsimp [b]
     positivity
-  have hbε : b < ε := by
-    dsimp [b]
-    have hminpos : 0 < min (min ε qR) (min (M 0 / 2) 1) := by positivity
-    have hle : min (min ε qR) (min (M 0 / 2) 1) ≤ ε :=
-      (min_le_left _ _).trans (min_le_left _ _)
-    linarith
-  have hbqR : b < qR := by
-    dsimp [b]
-    have hminpos : 0 < min (min ε qR) (min (M 0 / 2) 1) := by positivity
-    have hle : min (min ε qR) (min (M 0 / 2) 1) ≤ qR :=
-      (min_le_left _ _).trans (min_le_right _ _)
-    linarith
-  have hbM : b < M 0 / 2 := by
-    dsimp [b]
-    have hminpos : 0 < min (min ε qR) (min (M 0 / 2) 1) := by positivity
-    have hle : min (min ε qR) (min (M 0 / 2) 1) ≤ M 0 / 2 :=
-      (min_le_right _ _).trans (min_le_left _ _)
-    linarith
-  have hb1 : b < 1 := by
-    dsimp [b]
-    have hminpos : 0 < min (min ε qR) (min (M 0 / 2) 1) := by positivity
-    have hle : min (min ε qR) (min (M 0 / 2) 1) ≤ 1 :=
-      (min_le_right _ _).trans (min_le_right _ _)
-    linarith
+  have hbmin : b < min (min ε qR) (min (M 0 / 2) 1) :=
+    half_lt_self (by positivity)
+  have hbε : b < ε :=
+    hbmin.trans_le ((min_le_left _ _).trans (min_le_left _ _))
+  have hbqR : b < qR :=
+    hbmin.trans_le ((min_le_left _ _).trans (min_le_right _ _))
+  have hbM : b < M 0 / 2 :=
+    hbmin.trans_le ((min_le_right _ _).trans (min_le_left _ _))
+  have hb1 : b < 1 :=
+    hbmin.trans_le ((min_le_right _ _).trans (min_le_right _ _))
   have hMlarge : ∀ u ∈ Icc (0 : ℝ) b, M 0 / 2 < M u := by
     intro u hu
     apply hεsub
@@ -4222,12 +4019,8 @@ theorem randomFieldParisiQ_first_pos_of_isMin
     strictAntiOn_of_deriv_neg (convex_Icc 0 b) hFcont hderivneg
   have hFbF0 : F b < F 0 := hanti ⟨le_rfl, hbpos.le⟩ ⟨hbpos.le, le_rfl⟩ hbpos
   have hminle : F 0 ≤ F b := by
-    have hsame : qUpdate qs 0 0 = qs := by
-      funext p
-      by_cases hp : p = 0
-      · subst p
-        simp [qUpdate, hqzero]
-      · simp [qUpdate, hp]
+    have hsame : qUpdate qs 0 0 = qs :=
+      qUpdate_eq_of_eq qs 0 hqzero
     change randomFieldParisiFunctional μh ξ ms (qUpdate qs 0 0) ≤
       randomFieldParisiFunctional μh ξ ms (qUpdate qs 0 b)
     rw [hsame]
@@ -4276,12 +4069,8 @@ theorem hasDerivWithinAt_randomFieldParisiX₀_last_qUpdate
       simpa [hqlast] using hq.1 hprev
   have hqLmem : qL ∈ Icc (0 : ℝ) 1 :=
     qExt_mem_Icc hq.monotone hq.2.1 hq.2.2 _
-  have hsame : qUpdate qs r 1 = qs := by
-    funext p
-    by_cases hp : p = r
-    · subst p
-      simp [qUpdate, r, hqlast]
-    · simp [qUpdate, hp]
+  have hsame : qUpdate qs r 1 = qs :=
+    qUpdate_eq_of_eq qs r (by simpa [r] using hqlast)
   have hfm : ∀ u, Measurable (f u) := fun u =>
     measurable_parisiX₀_logCosh ξ ms (qUpdate qs r u) hm.2.1
       (fun p => (hm.2.2 p).le)
