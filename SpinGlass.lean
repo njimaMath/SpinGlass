@@ -105,6 +105,8 @@ import SpinGlass.Parisi.BranchAverages
 import SpinGlass.Parisi.PairLevels
 import SpinGlass.Parisi.GuerraFixedWeights
 import SpinGlass.Parisi.GuerraParisi
+import SpinGlass.Parisi.RandomExternalField
+import SpinGlass.Parisi.RandomFieldFunctional
 import SpinGlass.Parisi.ParisiInf
 import SpinGlass.ThermodynamicLimit
 import Common.Mathlib.Algebra.BigOperators.SummationByParts
