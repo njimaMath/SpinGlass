@@ -11,7 +11,7 @@ import SpinGlass.Parisi.BranchAverages
 The Gibbs pair average `⟨θ(q_{(α,γ)})⟩_t` on `Σ_N × A_M` is a pair average over the branches with
 the weights `u*_α exp F_t(α)` (`sum_wGibbs_pair_eq`). Decomposing `θ(q_{(α,γ)})` along the
 levels, `θ(q_{(α,γ)}) = ∑_{r ≤ k} θ(q_{r+1}) (1_{(α,γ) ≥ r} − 1_{(α,γ) ≥ r+1})`
-(`sum_theta_levels`), it becomes a combination of the **truncated pair fractions**
+(`sum_theta_levels`), it becomes a combination of the truncated pair fractions
 `truncPair r = Q_r^M / (S^M)²` (`treeBoundIntegrand_eq_levelBound`), where `Q_r^M` and `S^M` are
 the prefix sums of squares and the cascade sum restricted to the branches of the truncated tree.
 
@@ -80,7 +80,7 @@ lemma prefixEq_truncBranchCoe {M : ℕ} (r : ℕ) (α γ : TruncBranch k M) :
       exact hb i (Fin.le_def.2 (by simp only; omega))
 
 omit N in
-/-- **The level decomposition** `θ(q_{L+1}) = ∑_{r ≤ k} θ(q_{r+1}) (1_{r ≤ L} − 1_{r+1 ≤ L})`. -/
+/-- The level decomposition `θ(q_{L+1}) = ∑_{r ≤ k} θ(q_{r+1}) (1_{r ≤ L} − 1_{r+1 ≤ L})`. -/
 lemma sum_theta_levels (θ : ℕ → ℝ) {L : ℕ} (hL : L ≤ k) :
     ∑ r ∈ Finset.range (k + 1), θ r * ((if r ≤ L then (1 : ℝ) else 0)
       - (if r + 1 ≤ L then (1 : ℝ) else 0)) = θ L := by
@@ -192,7 +192,7 @@ lemma tendsto_sum_sum_truncBranch (f : (Fin k → ℕ × ℕ) → (Fin k → ℕ
     exact ⟨hM (Finset.mem_union_left _ (Finset.mem_image_of_mem _ hq)),
       hM (Finset.mem_union_right _ (Finset.mem_image_of_mem _ hq))⟩
 
-/-- **The truncated pair fractions converge to the pair fraction of the cascade** whenever
+/-- The truncated pair fractions converge to the pair fraction of the cascade whenever
 `0 < S < ∞`. -/
 theorem tendsto_truncPair (r : ℕ) {G : (Fin k → T) → ℝ≥0∞} (hG : Measurable G)
     (w : CascadeWeights k) (z : CascadeMarks T k)
@@ -221,7 +221,7 @@ theorem tendsto_truncPair (r : ℕ) {G : (Fin k → T) → ℝ≥0∞} (hG : Mea
       ≠ ∞ := ENNReal.mul_ne_top hQfin hinv
   exact (ENNReal.tendsto_toReal hfin).comp hmul
 
-/-- **Proposition 14.3.3 for the pair fraction**, under the product of the weights law and the
+/-- Proposition 14.3.3 for the pair fraction, under the product of the weights law and the
 marks law: `𝔼 ⟨1_{(α,γ) ≥ r}⟩ = 1 - m_r` for every branch weight `G` with `𝔼 G < ∞` in the sense
 of (14.4). This is the generic core of Talagrand's (14.76) and of its coupled version (14.137). -/
 theorem integral_gibbsPair_eq [Nonempty T] (ms : Fin k → ℝ) (μs : Fin k → Measure T)
@@ -300,7 +300,7 @@ lemma sum_pair_levels_div {A : Type*} [Fintype A] (X : A → A → ℝ) (L : A �
   exact Finset.sum_comm
 
 omit [MeasurableSpace T] in
-/-- **The trace-bound integrand by levels, for weights `u_α c_x` on `X × A_M`**: if the branch
+/-- The trace-bound integrand by levels, for weights `u_α c_x` on `X × A_M`: if the branch
 weight `G` restricted to the truncated branches is the partial partition function
 `Z_α(c) = ∑_x c_x e^{-H(x,α)}` and `u_α` is the truncated cascade weight, then for any function
 `θ` of the level `(α, γ)`,
@@ -374,10 +374,10 @@ theorem treeBoundIntegrand_prod_eq_levelBound {X : Type*} [Fintype X] (M : ℕ)
   exact sum_pair_levels_div k (fun α γ => u α * Z α * (u γ * Z γ)) (fun α γ => branchLevel α γ)
     (fun α γ => branchLevel_le α γ) θ D
 
-/-- **Talagrand's reduction of `⟨θ(q_{(α,γ)})⟩_t` to the cascade pair fractions** (the computation
+/-- Talagrand's reduction of `⟨θ(q_{(α,γ)})⟩_t` to the cascade pair fractions (the computation
 leading to (14.76)), for the truncated tree: the integrand of the bound is `levelBound` evaluated
 at the truncated pair fractions of `exp F_t`. -/
-theorem treeBoundIntegrand_eq_levelBound (M : ℕ) (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (c₀ t h : ℝ)
+theorem treeBoundIntegrand_eq_levelBound (M : ℕ) (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (c₀ t : ℝ) (h : Fin N → ℝ)
     (w : CascadeWeights k) (hw : ∀ α, branchWeight k w α ≠ ∞)
     (ω : EnergySpace N × MarksSpace N k) :
     treeBoundIntegrand (branchWt (N := N) (truncWt k M w)) c₀
@@ -396,17 +396,17 @@ theorem treeBoundIntegrand_eq_levelBound (M : ℕ) (ξ : ℝ → ℝ) (qs : Fin 
 
 /-! ### The bound for the whole cascade -/
 
-/-- **The bound of Guerra's interpolation for the whole cascade at time `t`**:
+/-- The bound of Guerra's interpolation for the whole cascade at time `t`:
 `𝔼 [(1/2)(ξ(1) − ξ'(q_{k+1})) + (1/2) ∑_{r ≤ k} θ(q_{r+1}) (⟨1_{(α,γ) ≥ r}⟩_t − ⟨1_{(α,γ) ≥ r+1}⟩_t)]`,
 the expectation being over the disorder `H_N` and the marks, at fixed weights `w`. -/
-def guerraBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (h : ℝ) (w : CascadeWeights k) (t : ℝ) : ℝ :=
+def guerraBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (h : Fin N → ℝ) (w : CascadeWeights k) (t : ℝ) : ℝ :=
   ∫ ω, levelBound k (ξ 1 - deriv ξ (qs (Fin.last k))) (fun r => parisiTheta ξ (qExt qs (r + 1)))
       (fun r => gibbsPair k r (hamG N k t h ω.1 ω.2.1) w ω.2.2)
     ∂(gaussField N (overlapCovMatrix N ξ)).prod
       (marksLaw N k (parisiVar ξ qs 0) fun p => parisiVar ξ qs (p.val + 1))
 
 /-- The branch partition function as an uncurried function of `(t, H, z₀)` and the marks. -/
-lemma measurable_uncurry_hamG (h : ℝ) :
+lemma measurable_uncurry_hamG (h : Fin N → ℝ) :
     Measurable (Function.uncurry fun a : ℝ × EnergySpace N × (Fin N → ℝ) =>
       hamG N k a.1 h a.2.1 a.2.2) := by
   have := measurable_hamG N k h
@@ -414,20 +414,20 @@ lemma measurable_uncurry_hamG (h : ℝ) :
   exact this
 
 /-- Joint measurability of the cascade sum of `exp F_t` in `(t, H, z₀)` and the sample. -/
-lemma measurable_cascadeSum_hamG (h : ℝ) :
+lemma measurable_cascadeSum_hamG (h : Fin N → ℝ) :
     Measurable fun q : (ℝ × EnergySpace N × (Fin N → ℝ)) × CascadeSpace (Fin N → ℝ) k =>
       cascadeSum k (hamG N k q.1.1 h q.1.2.1 q.1.2.2) q.2 := by
   have := measurable_cascadeSum_prod k (measurable_uncurry_hamG N k h)
   exact this
 
-lemma measurable_cascadeSq_hamG (r : ℕ) (h : ℝ) :
+lemma measurable_cascadeSq_hamG (r : ℕ) (h : Fin N → ℝ) :
     Measurable fun q : (ℝ × EnergySpace N × (Fin N → ℝ)) × CascadeSpace (Fin N → ℝ) k =>
       cascadeSq k r (hamG N k q.1.1 h q.1.2.1 q.1.2.2) q.2 := by
   have := measurable_cascadeSq_prod k r (measurable_uncurry_hamG N k h)
   exact this
 
 /-- Joint measurability of the pair fraction in `(t, H, z₀, w, z)`. -/
-lemma measurable_gibbsPair_hamG (r : ℕ) (h : ℝ) :
+lemma measurable_gibbsPair_hamG (r : ℕ) (h : Fin N → ℝ) :
     Measurable fun q : (ℝ × EnergySpace N × (Fin N → ℝ)) × (CascadeWeights k × CascadeMarks (Fin N → ℝ) k) =>
       gibbsPair k r (hamG N k q.1.1 h q.1.2.1 q.1.2.2) q.2.1 q.2.2 := by
   unfold gibbsPair
@@ -439,7 +439,7 @@ lemma measurable_gibbsPair_hamG (r : ℕ) (h : ℝ) :
   simp only [Function.comp_def] at h1 h2
   exact (h1.mul (h2.inv.pow_const 2)).ennreal_toReal
 
-lemma measurable_gibbsPair_hamG' (r : ℕ) (t h : ℝ) (w : CascadeWeights k) :
+lemma measurable_gibbsPair_hamG' (r : ℕ) (t : ℝ) (h : Fin N → ℝ) (w : CascadeWeights k) :
     Measurable fun ω : EnergySpace N × MarksSpace N k =>
       gibbsPair k r (hamG N k t h ω.1 ω.2.1) w ω.2.2 := by
   have hm : Measurable fun ω : EnergySpace N × MarksSpace N k =>
@@ -451,7 +451,7 @@ lemma measurable_gibbsPair_hamG' (r : ℕ) (t h : ℝ) (w : CascadeWeights k) :
   exact this
 
 /-- Measurability of the cascade sum of `exp F_t` in the disorder and the marks. -/
-lemma measurable_cascadeSum_hamG' (t h : ℝ) (w : CascadeWeights k) :
+lemma measurable_cascadeSum_hamG' (t : ℝ) (h : Fin N → ℝ) (w : CascadeWeights k) :
     Measurable fun ω : EnergySpace N × MarksSpace N k =>
       cascadeSum k (hamG N k t h ω.1 ω.2.1) (cascadeZip k (w, ω.2.2)) := by
   have hm : Measurable fun ω : EnergySpace N × MarksSpace N k =>
@@ -463,7 +463,7 @@ lemma measurable_cascadeSum_hamG' (t h : ℝ) (w : CascadeWeights k) :
   exact this
 
 /-- For weights of positive total mass, the cascade sum of `exp F_t` is positive. -/
-lemma cascadeSum_hamG_ne_zero (t h : ℝ) (H : EnergySpace N) (z₀ : Fin N → ℝ) (w : CascadeWeights k)
+lemma cascadeSum_hamG_ne_zero (t : ℝ) (h : Fin N → ℝ) (H : EnergySpace N) (z₀ : Fin N → ℝ) (w : CascadeWeights k)
     (hW0 : weightSum k w ≠ 0) (z : CascadeMarks (Fin N → ℝ) k) :
     cascadeSum k (hamG N k t h H z₀) (cascadeZip k (w, z)) ≠ 0 := by
   rw [cascadeSum_cascadeZip k (measurable_hamG' N k t h H z₀)]
@@ -475,7 +475,7 @@ lemma cascadeSum_hamG_ne_zero (t h : ℝ) (H : EnergySpace N) (z₀ : Fin N → 
   · exact absurd h0 (hamG_pos N k t h H z₀ _).ne'
 
 /-- For weights of finite total mass, the cascade sum of `exp F_t` is almost surely finite. -/
-lemma ae_cascadeSum_hamG_lt_top (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (t h : ℝ)
+lemma ae_cascadeSum_hamG_lt_top (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (t : ℝ) (h : Fin N → ℝ)
     (w : CascadeWeights k) (hW : weightSum k w ≠ ∞) :
     ∀ᵐ ω ∂(gaussField N (overlapCovMatrix N ξ)).prod
         (marksLaw N k (parisiVar ξ qs 0) fun p => parisiVar ξ qs (p.val + 1)),
@@ -524,8 +524,8 @@ lemma exists_truncWt_ne_zero (w : CascadeWeights k) (hW0 : weightSum k w ≠ 0)
   rw [hcoe]
   exact ENNReal.toReal_ne_zero.2 ⟨hα₀, ne_top_of_le_ne_top hW (branchWeight_le_weightSum k w α₀)⟩
 
-/-- **The truncated bounds converge to the bound for the whole cascade**, at every time `t`. -/
-theorem tendsto_guerraTruncBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (h : ℝ) (w : CascadeWeights k)
+/-- The truncated bounds converge to the bound for the whole cascade, at every time `t`. -/
+theorem tendsto_guerraTruncBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (h : Fin N → ℝ) (w : CascadeWeights k)
     (hW0 : weightSum k w ≠ 0) (hW : weightSum k w ≠ ∞) (t : ℝ) :
     Tendsto (fun M => guerraTruncBound N k M ξ qs h w t) atTop (𝓝 (guerraBound N k ξ qs h w t)) := by
   obtain ⟨M₀, hM₀⟩ := exists_truncWt_ne_zero k w hW0 hW
@@ -561,7 +561,7 @@ theorem tendsto_guerraTruncBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (
     exact (hF M ω).symm
 
 /-- The integrated truncated bounds converge to the integrated bound for the whole cascade. -/
-theorem tendsto_integral_guerraTruncBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (h : ℝ)
+theorem tendsto_integral_guerraTruncBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (h : Fin N → ℝ)
     (w : CascadeWeights k) (hW0 : weightSum k w ≠ 0) (hW : weightSum k w ≠ ∞) :
     Tendsto (fun M => ∫ t in (0 : ℝ)..1, guerraTruncBound N k M ξ qs h w t) atTop
       (𝓝 (∫ t in (0 : ℝ)..1, guerraBound N k ξ qs h w t)) := by

@@ -11,7 +11,8 @@ import SpinGlass.Parisi.RandomExternalField
 
 Talagrand's `h` in Vol. II, (14.83) is a real random variable.  Consequently `X₀` in (14.84)
 contains an outer expectation over `h` as well as the root Gaussian mark `z₀`.  This file adds
-that probability layer around the existing deterministic-field recursion.  No Gaussian
+that probability layer around the conditional one-site recursion and proves the bound for
+the actual i.i.d. site model.  No Gaussian
 assumption is made on the external field; a finite first absolute moment is sufficient.
 
 The normalization is exactly that of `SpinGlass.parisiFunctional`: `log 2 + X₀` followed by the
@@ -76,6 +77,14 @@ private lemma integrable_logCoshRec_add_prod {μh : Measure ℝ} [IsProbabilityM
   filter_upwards [] with q
   rw [Real.norm_eq_abs, abs_of_nonneg (logCoshRec_nonneg k ms vs hpos _)]
   exact logCoshRec_le k ms vs hpos hle _
+
+/-- The root-Gaussian average is integrable against a site law with finite first moment. -/
+theorem integrable_integral_logCoshRec_externalField {μh : Measure ℝ}
+    [IsProbabilityMeasure μh] (hμh : Integrable (fun h : ℝ => h) μh)
+    (ms : Fin k → ℝ) (vs : Fin k → ℝ≥0) (hpos : ∀ i, 0 < ms i)
+    (hle : ∀ i, ms i ≤ 1) (v₀ : ℝ≥0) :
+    Integrable (fun h => ∫ a, logCoshRec k ms vs (h + a) ∂gaussianReal 0 v₀) μh :=
+  (integrable_logCoshRec_add_prod hμh ms vs hpos hle v₀).integral_prod_left
 
 /-- The map `h ↦ X₀(h)` is measurable for admissible positive exponents. -/
 theorem measurable_parisiX₀_logCosh (ξ : ℝ → ℝ) {k : ℕ} (ms : Fin k → ℝ)
@@ -152,6 +161,122 @@ theorem randomFieldParisiFunctional_eq_theta_sum (μh : Measure ℝ) (ξ : ℝ �
   unfold parisiFunctional at h
   unfold randomFieldParisiFunctional
   linarith
+
+/-! ## I.i.d. site-field model -/
+
+/-- Averaging the site sum against the product law gives the one-site Parisi functional. -/
+theorem integral_siteAverage_parisiFunctional {μh : Measure ℝ} [IsProbabilityMeasure μh]
+    (hμh : Integrable (fun h : ℝ => h) μh) (hN : 0 < N) (ξ : ℝ → ℝ)
+    (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ)
+    (hpos : ∀ i, 0 < ms i) (hle : ∀ i, ms i ≤ 1) :
+    (∫ hVec, (1 / (N : ℝ)) * ∑ i, parisiFunctional ξ (hVec i) ms qs
+      ∂externalFieldVecLaw N μh) = randomFieldParisiFunctional μh ξ ms qs := by
+  have hPF := integrable_parisiFunctional_externalField hμh ξ ms qs hpos hle
+  have hi : ∀ i : Fin N, Integrable (fun hVec : Fin N → ℝ =>
+      parisiFunctional ξ (hVec i) ms qs) (externalFieldVecLaw N μh) := fun i =>
+    ((measurePreserving_externalFieldVec_apply N μh i).integrable_comp
+      hPF.aestronglyMeasurable).2 hPF
+  rw [integral_const_mul, integral_finsetSum _ fun i _ => hi i]
+  simp_rw [integral_externalFieldVec_apply N μh _ _ hPF.aestronglyMeasurable]
+  rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
+    ← mul_assoc, one_div, inv_mul_cancel₀ (by exact_mod_cast hN.ne' : (N : ℝ) ≠ 0),
+    one_mul]
+  exact (randomFieldParisiFunctional_eq_integral hμh ξ ms qs hpos hle).symm
+
+/-- Guerra's bound for independent, identically distributed quenched site fields.
+A probability site law with finite first absolute moment suffices. -/
+theorem iidFieldMixedPSpinFreeEnergy_le_randomFieldParisiFunctional
+    {μh : Measure ℝ} [IsProbabilityMeasure μh]
+    (hμh : Integrable (fun h : ℝ => h) μh) (hN : 0 < N) (ξ : ℝ → ℝ)
+    (hS : (overlapCovMatrix N ξ).PosSemidef) (qs : Fin (k + 1) → ℝ) (ms : Fin k → ℝ)
+    (h0 : deriv ξ 0 = 0)
+    (hmono : ∀ r, r ≤ k + 1 → deriv ξ (qExt qs r) ≤ deriv ξ (qExt qs (r + 1)))
+    (hq01 : ∀ r, qExt qs r ∈ Set.Icc (0 : ℝ) 1)
+    (htan : ∀ x ∈ Set.Icc (-1 : ℝ) 1, ∀ q ∈ Set.Icc (0 : ℝ) 1,
+      ξ q + (x - q) * deriv ξ q ≤ ξ x)
+    (hsm : StrictMono ms) (hpos : ∀ i, 0 < ms i) (hlt : ∀ i, ms i < 1) :
+    iidFieldMixedPSpinFreeEnergy N μh ξ ≤ randomFieldParisiFunctional μh ξ ms qs := by
+  have hPF := integrable_parisiFunctional_externalField hμh ξ ms qs hpos (fun i => (hlt i).le)
+  have hAvg : Integrable (fun hVec : Fin N → ℝ =>
+      (1 / (N : ℝ)) * ∑ i, parisiFunctional ξ (hVec i) ms qs)
+      (externalFieldVecLaw N μh) :=
+    (integrable_finsetSum _ fun i _ =>
+      ((measurePreserving_externalFieldVec_apply N μh i).integrable_comp
+        hPF.aestronglyMeasurable).2 hPF).const_mul _
+  rw [← integral_siteAverage_parisiFunctional hμh hN ξ ms qs hpos (fun i => (hlt i).le)]
+  exact integral_mono (integrable_siteFieldMixedPSpinFreeEnergy N hμh ξ hS) hAvg fun hVec =>
+    siteFieldMixedPSpinFreeEnergy_le_parisiFunctional N k hN ξ hS qs ms h0 hmono hq01
+      htan hsm hpos hlt hVec
+
+/-- The i.i.d. Guerra bound under convexity and differentiability of the covariance profile. -/
+theorem iidFieldMixedPSpinFreeEnergy_le_randomFieldParisiFunctional_of_convexOn
+    {μh : Measure ℝ} [IsProbabilityMeasure μh]
+    (hμh : Integrable (fun h : ℝ => h) μh) (hN : 0 < N) (ξ : ℝ → ℝ)
+    (hS : (overlapCovMatrix N ξ).PosSemidef) (hconv : ConvexOn ℝ Set.univ ξ)
+    (hdiff : Differentiable ℝ ξ) (h0 : deriv ξ 0 = 0) (qs : Fin (k + 1) → ℝ)
+    (hqmono : Monotone qs) (hq0 : 0 ≤ qs 0) (hq1 : qs (Fin.last k) ≤ 1)
+    (ms : Fin k → ℝ) (hsm : StrictMono ms) (hpos : ∀ i, 0 < ms i) (hlt : ∀ i, ms i < 1) :
+    iidFieldMixedPSpinFreeEnergy N μh ξ ≤ randomFieldParisiFunctional μh ξ ms qs := by
+  have hderiv : Monotone (deriv ξ) :=
+    monotoneOn_univ.1 (hconv.monotoneOn_deriv fun x _ => hdiff x)
+  refine iidFieldMixedPSpinFreeEnergy_le_randomFieldParisiFunctional hμh hN ξ hS qs ms h0
+    (fun r hr => hderiv (qExt_le_succ hqmono hq0 hq1 hr))
+    (fun r => qExt_mem_Icc hqmono hq0 hq1 r) (fun x _ q _ => ?_) hsm hpos hlt
+  rw [mul_comm (x - q) (deriv ξ q)]
+  exact hconv.add_deriv_mul_sub_le_univ hdiff q x
+
+/-- Guerra's i.i.d. bound with repeated positive Parisi exponents. -/
+theorem iidFieldMixedPSpinFreeEnergy_le_randomFieldParisiFunctional_of_monotone
+    {μh : Measure ℝ} [IsProbabilityMeasure μh]
+    (hμh : Integrable (fun h : ℝ => h) μh) (hN : 0 < N) (ξ : ℝ → ℝ)
+    (hS : (overlapCovMatrix N ξ).PosSemidef) (qs : Fin (k + 1) → ℝ) (ms : Fin k → ℝ)
+    (h0 : deriv ξ 0 = 0)
+    (hmono : ∀ r, r ≤ k + 1 → deriv ξ (qExt qs r) ≤ deriv ξ (qExt qs (r + 1)))
+    (hq01 : ∀ r, qExt qs r ∈ Set.Icc (0 : ℝ) 1)
+    (htan : ∀ x ∈ Set.Icc (-1 : ℝ) 1, ∀ q ∈ Set.Icc (0 : ℝ) 1,
+      ξ q + (x - q) * deriv ξ q ≤ ξ x)
+    (hmsm : Monotone ms) (hpos : ∀ i, 0 < ms i) (hle : ∀ i, ms i ≤ 1) :
+    iidFieldMixedPSpinFreeEnergy N μh ξ ≤ randomFieldParisiFunctional μh ξ ms qs := by
+  have hPF := integrable_parisiFunctional_externalField hμh ξ ms qs hpos hle
+  have hAvg : Integrable (fun hVec : Fin N → ℝ =>
+      (1 / (N : ℝ)) * ∑ i, parisiFunctional ξ (hVec i) ms qs)
+      (externalFieldVecLaw N μh) :=
+    (integrable_finsetSum _ fun i _ =>
+      ((measurePreserving_externalFieldVec_apply N μh i).integrable_comp
+        hPF.aestronglyMeasurable).2 hPF).const_mul _
+  rw [← integral_siteAverage_parisiFunctional hμh hN ξ ms qs hpos hle]
+  exact integral_mono (integrable_siteFieldMixedPSpinFreeEnergy N hμh ξ hS) hAvg fun hVec =>
+    siteFieldMixedPSpinFreeEnergy_le_parisiFunctional_of_monotone N k hN ξ hS qs ms h0 hmono hq01
+      htan hmsm hpos hle hVec
+
+/-- The i.i.d. Guerra bound under convexity and differentiability of the covariance profile. -/
+theorem iidFieldMixedPSpinFreeEnergy_le_randomFieldParisiFunctional_of_convexOn_of_monotone
+    {μh : Measure ℝ} [IsProbabilityMeasure μh]
+    (hμh : Integrable (fun h : ℝ => h) μh) (hN : 0 < N) (ξ : ℝ → ℝ)
+    (hS : (overlapCovMatrix N ξ).PosSemidef) (hconv : ConvexOn ℝ Set.univ ξ)
+    (hdiff : Differentiable ℝ ξ) (h0 : deriv ξ 0 = 0) (qs : Fin (k + 1) → ℝ)
+    (hqmono : Monotone qs) (hq0 : 0 ≤ qs 0) (hq1 : qs (Fin.last k) ≤ 1)
+    (ms : Fin k → ℝ) (hmsm : Monotone ms) (hpos : ∀ i, 0 < ms i) (hle : ∀ i, ms i ≤ 1) :
+    iidFieldMixedPSpinFreeEnergy N μh ξ ≤ randomFieldParisiFunctional μh ξ ms qs := by
+  have hderiv : Monotone (deriv ξ) :=
+    monotoneOn_univ.1 (hconv.monotoneOn_deriv fun x _ => hdiff x)
+  refine iidFieldMixedPSpinFreeEnergy_le_randomFieldParisiFunctional_of_monotone hμh hN ξ hS qs ms h0
+    (fun r hr => hderiv (qExt_le_succ hqmono hq0 hq1 hr))
+    (fun r => qExt_mem_Icc hqmono hq0 hq1 r) (fun x _ q _ => ?_) hmsm hpos hle
+  rw [mul_comm (x - q) (deriv ξ q)]
+  exact hconv.add_deriv_mul_sub_le_univ hdiff q x
+
+/-- Guerra's bound for SK with a general i.i.d. field, including repeated exponents. -/
+theorem iidFieldSKFreeEnergy_le_randomFieldParisiFunctional_of_monotone
+    {μh : Measure ℝ} [IsProbabilityMeasure μh]
+    (hμh : Integrable (fun h : ℝ => h) μh) (hN : 0 < N) (β : ℝ)
+    (qs : Fin (k + 1) → ℝ) (hqmono : Monotone qs) (hq0 : 0 ≤ qs 0)
+    (hq1 : qs (Fin.last k) ≤ 1) (ms : Fin k → ℝ) (hmsm : Monotone ms)
+    (hpos : ∀ i, 0 < ms i) (hle : ∀ i, ms i ≤ 1) :
+    iidFieldSKFreeEnergy N μh β ≤ randomFieldParisiFunctional μh (skCovXi β) ms qs :=
+  iidFieldMixedPSpinFreeEnergy_le_randomFieldParisiFunctional_of_convexOn_of_monotone hμh hN
+    (skCovXi β) (posSemidef_skCovMatrix N β) (convexOn_univ_skCovXi β)
+    (differentiable_skCovXi β) (deriv_skCovXi_zero β) qs hqmono hq0 hq1 ms hmsm hpos hle
 
 /-! ## Replica-symmetric check -/
 

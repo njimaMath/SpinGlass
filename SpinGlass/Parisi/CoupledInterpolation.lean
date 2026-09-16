@@ -13,7 +13,7 @@ Talagrand, Vol. II, §14.6, (14.130)–(14.139). On a cascade with `κ` levels o
 `Fin N × J`, the interpolating field `H` of (14.135) has per-level factors `L₀, L_p` and the
 external field `H⁰` of (14.136) has factors `L₀', L'_p`, the two families using disjoint columns of
 `J` (so that the fields are independent, `indepFun_pairTreeField_of_disjoint`); `H⁰` also carries a
-deterministic per-site field `a` (Talagrand's `h_i`). When the covariances of `H` are the
+realized per-site field `a` (Talagrand's `h_i`). When the covariances of `H` are the
 increments of `ξ' ∘ ρ` (14.130) with `ρ_0 = 0` (14.131) and `ρ_{κ+1} = 1, u` (14.132), Lemma
 14.6.1 integrated over `s` gives (14.139) before the evaluation of the endpoints
 (`wFreeEnergy_coupledScheme_sub_le`):
@@ -35,7 +35,7 @@ noncomputable section
 
 variable {N : ℕ} {Ω : Type*} [MeasurableSpace Ω] {Pm : Measure Ω} [IsProbabilityMeasure Pm]
 
-/-- The deterministic external field `∑_ℓ ∑_i σ^ℓ_i a(i,ℓ)` on the pairs. -/
+/-- The external-field energy for a realized vector `∑_ℓ ∑_i σ^ℓ_i a(i,ℓ)` on the pairs. -/
 def pairFieldHam (N : ℕ) (A : Type*) [Fintype A] (a : Fin N × Fin 2 → ℝ) :
     FiniteGibbs.EnergySpace (PairConfig N A) :=
   WithLp.toLp 2 fun x => ∑ l : Fin 2, ∑ i, isingSpin (x.1 l i) * a (i, l)
@@ -59,7 +59,7 @@ def coupledTreeField (M : ℕ) (Pm : Measure Ω) [IsProbabilityMeasure Pm] (v₀
   (pairTreeField N κ M v₀ vs L₀ L).prodRight Pm
 
 /-- The external field `H⁰` of (14.136): the coupled marks field with factors `L₀', L'` plus the
-deterministic field `a`. -/
+realized field `a`. -/
 def coupledExtField (M : ℕ) (Pm : Measure Ω) [IsProbabilityMeasure Pm] (v₀ : ℝ≥0)
     (vs : Fin κ → ℝ≥0) (L₀' : Fin 2 → J → ℝ) (L' : Fin κ → Fin 2 → J → ℝ)
     (a : Fin N × Fin 2 → ℝ) (ω : Ω × SiteMarksSpace (Fin N × J) κ) :
@@ -77,8 +77,8 @@ lemma integrable_coupledExtField (M : ℕ) (v₀ : ℝ≥0) (vs : Fin κ → ℝ
       (Pm.prod (siteMarksLaw (Fin N × J) κ v₀ vs)) :=
   (coupledTreeField N M Pm v₀ vs L₀' L').integrable.add (integrable_const _)
 
-/-- **The pair of the model field and of the interpolating field is independent of the external
-field** when the two families of factors use disjoint columns. -/
+/-- The pair of the model field and of the interpolating field is independent of the external
+field when the two families of factors use disjoint columns. -/
 theorem indepFun_pair_coupledExtField (M : ℕ) (ξ : ℝ → ℝ)
     (G₀ : GaussianField (α := Config N) Pm (fun σ τ => overlapCovMatrix N ξ σ τ)) (v₀ : ℝ≥0)
     (vs : Fin κ → ℝ≥0) {J₁ : Finset J} {L₀ L₀' : Fin 2 → J → ℝ} {L L' : Fin κ → Fin 2 → J → ℝ}
@@ -100,7 +100,7 @@ theorem indepFun_pair_coupledExtField (M : ℕ) (ξ : ℝ → ℝ)
       V + pairFieldHam N (TruncBranch κ M) a := measurable_id.add_const _
   exact hlift.comp hΨ hφ
 
-/-- **Lemma 14.6.1 for the two-dimensional scheme with the external field (14.136)**
+/-- Lemma 14.6.1 for the two-dimensional scheme with the external field (14.136)
 (Talagrand's (14.139) before the evaluation of the endpoints): with the interpolating field of
 (14.135) whose covariances are the increments of `ξ' ∘ ρ` and the external field `H⁰`, for
 weights carrying the constraint `R_{1,2} = u`,

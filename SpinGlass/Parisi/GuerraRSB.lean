@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
 import SpinGlass.Parisi.TreeCov
+import SpinGlass.Parisi.RandomExternalField
 import SpinGlass.Parisi.GuerraBound
 import SpinGlass.FiniteGibbs.GaussianFieldProd
 import SpinGlass.MixedPSpinThermodynamicLimit
@@ -17,7 +18,7 @@ fixed weights. On the state space `Σ_N × A`, `A = TruncBranch k M`, the model 
 `H_N(σ)` (lifted) and the marks field `H(σ, α)` (Talagrand's (14.73)) are independent centered
 Gaussian fields on the product of the model law `N(0, N ξ(R))` with the marks law, and the
 weighted comparison bound `wFreeEnergy_sub_le` with the weights `u*_α` of the branches gives
-`p_N ≤ 𝔼 (1/N) log ∑_α v_α ∏ᵢ 2cosh(h + z₀ᵢ + ∑ₚ z_{i,p,α}) + ∫₀¹ b(t) dt`,
+`p_N ≤ 𝔼 (1/N) log ∑_α v_α ∏ᵢ 2cosh(h i + z₀ᵢ + ∑ₚ z_{i,p,α}) + ∫₀¹ b(t) dt`,
 `b(t) = (1/2)(ξ(1) − ξ'(q_{k+1})) + (1/2) 𝔼⟨θ(q_{(α,γ)})⟩_t` (`guerra_truncated`).
 
 This file provides the two computations of §14.4 behind the endpoints: the weighted partition
@@ -59,12 +60,12 @@ lemma wZ_pullback_fst (w : A → ℝ) (H : EnergySpace N) :
   rfl
 
 /-- The weighted partition function of a Hamiltonian of the form `∑ᵢ σᵢ aᵢ(α)`, plus a field
-`h`, is the Ising site factorization `∑_α w_α ∏ᵢ 2 cosh(h + aᵢ(α))` (Talagrand's (14.80)). -/
-lemma wZ_ising (w : A → ℝ) (a : A → Fin N → ℝ) (h : ℝ) :
+`h`, is the Ising site factorization `∑_α w_α ∏ᵢ 2 cosh(h i + aᵢ(α))` (Talagrand's (14.80)). -/
+lemma wZ_ising (w : A → ℝ) (a : A → Fin N → ℝ) (h : Fin N → ℝ) :
     wZ (branchWt (N := N) w)
         (WithLp.toLp 2 (fun x : Config N × A => ∑ i, isingSpin (x.1 i) * a x.2 i)
-          + pullbackCLM Prod.fst (H_field N h))
-      = ∑ α, w α * ∏ i, (2 * Real.cosh (h + a α i)) := by
+          + pullbackCLM Prod.fst (siteExternalFieldEnergy N h))
+      = ∑ α, w α * ∏ i, (2 * Real.cosh (h i + a α i)) := by
   unfold wZ branchWt
   rw [Fintype.sum_prod_type, Finset.sum_comm]
   refine Finset.sum_congr rfl fun α _ => ?_
@@ -72,15 +73,15 @@ lemma wZ_ising (w : A → ℝ) (a : A → Fin N → ℝ) (h : ℝ) :
   rw [← Finset.mul_sum]
   congr 1
   have hval : ∀ σ : Config N, -(((WithLp.toLp 2 (fun x : Config N × A =>
-      ∑ i, isingSpin (x.1 i) * a x.2 i) + pullbackCLM Prod.fst (H_field N h) :
+      ∑ i, isingSpin (x.1 i) * a x.2 i) + pullbackCLM Prod.fst (siteExternalFieldEnergy N h) :
         FiniteGibbs.EnergySpace (Config N × A))) (σ, α))
-      = ∑ i, (-(h + a α i)) * spin N σ i := by
+      = ∑ i, (-(h i + a α i)) * spin N σ i := by
     intro σ
-    change -((∑ i, isingSpin (σ i) * a α i) + h * ∑ i, isingSpin (σ i)) = _
-    rw [Finset.mul_sum, ← Finset.sum_add_distrib, ← Finset.sum_neg_distrib]
+    change -((∑ i, isingSpin (σ i) * a α i) + ∑ i, h i * isingSpin (σ i)) = _
+    rw [← Finset.sum_add_distrib, ← Finset.sum_neg_distrib]
     exact Finset.sum_congr rfl fun i _ => by simp only [spin, spinOf]; ring
   simp_rw [hval]
-  rw [sum_exp_sum_spin N (fun i => -(h + a α i))]
+  rw [sum_exp_sum_spin N (fun i => -(h i + a α i))]
   refine Finset.prod_congr rfl fun i _ => ?_
   rw [neg_neg, add_comm, exp_add_exp_neg_eq_two_cosh]
 
@@ -101,12 +102,12 @@ lemma truncWt_nonneg (w : CascadeWeights k) (α : TruncBranch k M) : 0 ≤ trunc
 
 /-- The interpolating Hamiltonian `√t H_N(σ) + √(1-t) H(σ,α)` plus the field, on the product
 of the model law with the marks law. -/
-def truncHam (t h : ℝ) (ω : EnergySpace N × MarksSpace N k) :
+def truncHam (t : ℝ) (h : Fin N → ℝ) (ω : EnergySpace N × MarksSpace N k) :
     FiniteGibbs.EnergySpace (Config N × TruncBranch k M) :=
   Real.sqrt t • pullbackCLM Prod.fst ω.1 + Real.sqrt (1 - t) • treeLin N k M (treeCoords N k M ω.2)
-    + pullbackCLM Prod.fst (H_field N h)
+    + pullbackCLM Prod.fst (siteExternalFieldEnergy N h)
 
-lemma measurable_truncHam (t h : ℝ) : Measurable (truncHam N k M t h) := by
+lemma measurable_truncHam (t : ℝ) (h : Fin N → ℝ) : Measurable (truncHam N k M t h) := by
   have h1 : Measurable fun ω : EnergySpace N × MarksSpace N k =>
       Real.sqrt t • pullbackCLM (Prod.fst : Config N × TruncBranch k M → Config N) ω.1 :=
     (Real.sqrt t • pullbackCLM
@@ -120,7 +121,7 @@ lemma measurable_truncHam (t h : ℝ) : Measurable (truncHam N k M t h) := by
 
 /-- The bound (14.79) at time `t` for the weights `w`:
 `𝔼 [(1/2)(ξ(1) - ξ'(q_{k+1})) + (1/2) ⟨θ(q_{(α,γ)})⟩_t]`. -/
-def guerraTruncBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (h : ℝ) (w : CascadeWeights k)
+def guerraTruncBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (h : Fin N → ℝ) (w : CascadeWeights k)
     (t : ℝ) : ℝ :=
   ∫ ω, treeBoundIntegrand (branchWt (N := N) (truncWt k M w)) (ξ 1 - deriv ξ (qs (Fin.last k)))
       (fun x y => parisiTheta ξ (treeOverlap qs x.2 y.2)) (truncHam N k M t h ω)
@@ -128,7 +129,7 @@ def guerraTruncBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (h : ℝ) (w 
       (marksLaw N k (parisiVar ξ qs 0) fun p => parisiVar ξ qs (p.val + 1))
 
 /-- The bound of the truncated interpolation is continuous in `t`. -/
-lemma continuous_guerraTruncBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (h : ℝ)
+lemma continuous_guerraTruncBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) (h : Fin N → ℝ)
     (w : CascadeWeights k) (hne : ∃ α : TruncBranch k M, truncWt k M w α ≠ 0) :
     Continuous (guerraTruncBound N k M ξ qs h w) := by
   set wt : Config N × TruncBranch k M → ℝ := branchWt (N := N) (truncWt k M w) with hwtdef
@@ -160,18 +161,18 @@ lemma continuous_guerraTruncBound (ξ : ℝ → ℝ) (qs : Fin (k + 1) → ℝ) 
     ((Real.continuous_sqrt.comp (continuous_const.sub continuous_id)).smul continuous_const)).add
     continuous_const
 
-/-- **Guerra's interpolation for the tree truncated to indices `< M`, at fixed weights `w`**
+/-- Guerra's interpolation for the tree truncated to indices `< M`, at fixed weights `w`
 (Talagrand's Lemma 14.4.1 with (14.79) and (14.80), integrated over `t`):
-`p_N ≤ 𝔼 (1/N) log ∑_α u*_α ∏ᵢ 2cosh(h + z₀ᵢ + ∑ₚ z_{i,p,α}) − (1/N) log ∑_α u*_α + ∫₀¹ b(t) dt`. -/
+`p_N ≤ 𝔼 (1/N) log ∑_α u*_α ∏ᵢ 2cosh(h i + z₀ᵢ + ∑ₚ z_{i,p,α}) − (1/N) log ∑_α u*_α + ∫₀¹ b(t) dt`. -/
 theorem guerra_truncated (hN : 0 < N) (ξ : ℝ → ℝ) (hS : (overlapCovMatrix N ξ).PosSemidef)
     (qs : Fin (k + 1) → ℝ) (h0 : deriv ξ 0 = 0)
     (hmono : ∀ r, r ≤ k + 1 → deriv ξ (qExt qs r) ≤ deriv ξ (qExt qs (r + 1)))
     (hq01 : ∀ r, qExt qs r ∈ Set.Icc (0 : ℝ) 1)
     (htan : ∀ x ∈ Set.Icc (-1 : ℝ) 1, ∀ q ∈ Set.Icc (0 : ℝ) 1, ξ q + (x - q) * deriv ξ q ≤ ξ x)
-    (h : ℝ) (w : CascadeWeights k) (hne : ∃ α : TruncBranch k M, truncWt k M w α ≠ 0) :
-    mixedPSpinFreeEnergy N ξ h
+    (h : Fin N → ℝ) (w : CascadeWeights k) (hne : ∃ α : TruncBranch k M, truncWt k M w α ≠ 0) :
+    siteFieldMixedPSpinFreeEnergy N ξ h
       ≤ (∫ z, (1 / (N : ℝ)) * Real.log (∑ α, truncWt k M w α
-            * ∏ i, (2 * Real.cosh (h + treeMark N k M z α i)))
+            * ∏ i, (2 * Real.cosh (h i + treeMark N k M z α i)))
           ∂marksLaw N k (parisiVar ξ qs 0) fun p => parisiVar ξ qs (p.val + 1))
         - (1 / (N : ℝ)) * Real.log (∑ α, truncWt k M w α)
         + ∫ t in (0 : ℝ)..1, guerraTruncBound N k M ξ qs h w t := by
@@ -181,7 +182,7 @@ theorem guerra_truncated (hN : 0 < N) (ξ : ℝ → ℝ) (hS : (overlapCovMatrix
   set Pm : Measure (EnergySpace N) := gaussField N (overlapCovMatrix N ξ) with hPm
   set Pz := marksLaw N k v₀ vs with hPz
   set wt : Config N × TruncBranch k M → ℝ := branchWt (N := N) (truncWt k M w) with hwtdef
-  set c := pullbackCLM (Prod.fst : Config N × TruncBranch k M → Config N) (H_field N h) with hc
+  set c := pullbackCLM (Prod.fst : Config N × TruncBranch k M → Config N) (siteExternalFieldEnergy N h) with hc
   -- the two fields
   let G₁ := ((GaussianField.ofMultivariateGaussian hS).comp
     (Prod.fst : Config N × TruncBranch k M → Config N)).prodLeft Pz
@@ -268,47 +269,47 @@ theorem guerra_truncated (hN : 0 < N) (ξ : ℝ → ℝ) (hS : (overlapCovMatrix
       ⟨α, Finset.mem_univ _, lt_of_le_of_ne (truncWt_nonneg k M w α) hα.symm⟩
   have hE1 : ∀ ω : EnergySpace N × MarksSpace N k, wFreeEnergy wt N (G₁.U ω + c)
       = (1 / (N : ℝ)) * Real.log (∑ α, truncWt k M w α)
-        + free_energy_density (N := N) (ω.1 + H_field N h) := by
+        + free_energy_density (N := N) (ω.1 + siteExternalFieldEnergy N h) := by
     intro ω
-    have hU : G₁.U ω + c = pullbackCLM Prod.fst (ω.1 + H_field N h) := by
+    have hU : G₁.U ω + c = pullbackCLM Prod.fst (ω.1 + siteExternalFieldEnergy N h) := by
       rw [map_add]
       rfl
     rw [wFreeEnergy, hU, hwtdef, wZ_pullback_fst, Real.log_mul hsum_pos.ne' (Z_pos N _).ne',
       mul_add]
     rfl
   have hint_fe : Integrable (fun ω : EnergySpace N × MarksSpace N k =>
-      free_energy_density (N := N) (ω.1 + H_field N h)) (Pm.prod Pz) := by
+      free_energy_density (N := N) (ω.1 + siteExternalFieldEnergy N h)) (Pm.prod Pz) := by
     refine integrable_free_energy_density_of_isGaussian N (Pm.prod Pz)
-      (g := fun ω : EnergySpace N × MarksSpace N k => ω.1 + H_field N h)
+      (g := fun ω : EnergySpace N × MarksSpace N k => ω.1 + siteExternalFieldEnergy N h)
       (measurable_fst.add_const _) ?_
-    have hmap : (Pm.prod Pz).map (fun ω : EnergySpace N × MarksSpace N k => ω.1 + H_field N h)
-        = Pm.map (fun H => H + H_field N h) := by
+    have hmap : (Pm.prod Pz).map (fun ω : EnergySpace N × MarksSpace N k => ω.1 + siteExternalFieldEnergy N h)
+        = Pm.map (fun H => H + siteExternalFieldEnergy N h) := by
       have hfst : Pm = (Pm.prod Pz).map Prod.fst := by
         rw [Measure.map_fst_prod, measure_univ, one_smul]
-      have hadd : Measurable fun H : EnergySpace N => H + H_field N h := measurable_id.add_const _
+      have hadd : Measurable fun H : EnergySpace N => H + siteExternalFieldEnergy N h := measurable_id.add_const _
       conv_rhs => rw [hfst]
       rw [Measure.map_map hadd measurable_fst]
       rfl
     rw [hmap, hPm, gaussField]
     infer_instance
   have hE1' : (∫ ω, wFreeEnergy wt N (G₁.U ω + c) ∂Pm.prod Pz)
-      = (1 / (N : ℝ)) * Real.log (∑ α, truncWt k M w α) + mixedPSpinFreeEnergy N ξ h := by
+      = (1 / (N : ℝ)) * Real.log (∑ α, truncWt k M w α) + siteFieldMixedPSpinFreeEnergy N ξ h := by
     simp_rw [hE1]
     rw [integral_add (integrable_const _) hint_fe, integral_const, probReal_univ, one_smul]
     congr 1
-    change _ = ∫ H, free_energy_density (N := N) (H + H_field N h) ∂Pm
+    change _ = ∫ H, free_energy_density (N := N) (H + siteExternalFieldEnergy N h) ∂Pm
     have hcont : Continuous fun H : EnergySpace N =>
-        free_energy_density (N := N) (H + H_field N h) :=
+        free_energy_density (N := N) (H + siteExternalFieldEnergy N h) :=
       (contDiff_free_energy_density N).continuous.comp (continuous_id.add continuous_const)
     have hmeasF : AEStronglyMeasurable
-        (fun H : EnergySpace N => free_energy_density (N := N) (H + H_field N h))
+        (fun H : EnergySpace N => free_energy_density (N := N) (H + siteExternalFieldEnergy N h))
         ((Pm.prod Pz).map Prod.fst) := hcont.aestronglyMeasurable
     rw [← integral_map measurable_fst.aemeasurable hmeasF, Measure.map_fst_prod, measure_univ,
       one_smul]
   -- the second endpoint: the Ising site factorization (14.80)
   have hE2 : ∀ ω : EnergySpace N × MarksSpace N k, wFreeEnergy wt N (G₂.U ω + c)
       = (1 / (N : ℝ)) * Real.log (∑ α, truncWt k M w α
-          * ∏ i, (2 * Real.cosh (h + treeMark N k M ω.2 α i))) := by
+          * ∏ i, (2 * Real.cosh (h i + treeMark N k M ω.2 α i))) := by
     intro ω
     rw [wFreeEnergy, hU₂]
     have hV : treeLin N k M (treeCoords N k M ω.2)
@@ -318,7 +319,7 @@ theorem guerra_truncated (hN : 0 < N) (ξ : ℝ → ℝ) (hS : (overlapCovMatrix
       exact treeLin_treeCoords_apply N k M ω.2 x
     rw [hV, hwtdef, hc, wZ_ising]
   have hmeasE2 : Measurable fun z : MarksSpace N k => (1 / (N : ℝ)) * Real.log (∑ α, truncWt k M w α
-      * ∏ i, (2 * Real.cosh (h + treeMark N k M z α i))) := by
+      * ∏ i, (2 * Real.cosh (h i + treeMark N k M z α i))) := by
     refine measurable_const.mul (Real.measurable_log.comp (Finset.measurable_sum _ fun α _ =>
       measurable_const.mul (Finset.measurable_prod _ fun i _ => measurable_const.mul
         (Real.continuous_cosh.measurable.comp (measurable_const.add ?_)))))
@@ -328,10 +329,10 @@ theorem guerra_truncated (hN : 0 < N) (ξ : ℝ → ℝ) (hS : (overlapCovMatrix
         ((measurable_truncMarks k M).comp measurable_snd)))
   have hE2' : (∫ ω, wFreeEnergy wt N (G₂.U ω + c) ∂Pm.prod Pz)
       = ∫ z, (1 / (N : ℝ)) * Real.log (∑ α, truncWt k M w α
-          * ∏ i, (2 * Real.cosh (h + treeMark N k M z α i))) ∂Pz := by
+          * ∏ i, (2 * Real.cosh (h i + treeMark N k M z α i))) ∂Pz := by
     simp_rw [hE2]
     have hmeasF : AEStronglyMeasurable (fun z : MarksSpace N k => (1 / (N : ℝ))
-        * Real.log (∑ α, truncWt k M w α * ∏ i, (2 * Real.cosh (h + treeMark N k M z α i))))
+        * Real.log (∑ α, truncWt k M w α * ∏ i, (2 * Real.cosh (h i + treeMark N k M z α i))))
         ((Pm.prod Pz).map Prod.snd) := hmeasE2.aestronglyMeasurable
     rw [← integral_map measurable_snd.aemeasurable hmeasF, Measure.map_snd_prod, measure_univ,
       one_smul]

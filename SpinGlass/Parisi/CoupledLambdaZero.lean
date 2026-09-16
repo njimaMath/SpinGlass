@@ -5,6 +5,7 @@ Authors: Matteo Cipollina
 -/
 import SpinGlass.Parisi.CoupledProp
 import SpinGlass.Parisi.GuerraParisi
+import SpinGlass.Parisi.RandomFieldFunctional
 
 /-!
 # Proposition 14.6.3 at `λ = 0`: the bound is `2 𝒫_k(m, q)`
@@ -13,7 +14,7 @@ Talagrand's check after (14.152): for the coupling at the level `τ` (`η = 1`, 
 field `h` and the exponents `n_p = m_p/2` for `p < τ`, `n_p = m_p` for `p ≥ τ`, the right-hand
 side of (14.147) at `λ = 0` is exactly twice the Parisi functional. The three ingredients:
 
-* **`Y₀(0) = 2 X₀`** (`pairSiteY₀_coupling_zero`, from `cascadeRec_coupling`, Lemma 14.3.6 (a)
+* `Y₀(0) = 2 X₀` (`pairSiteY₀_coupling_zero`, from `cascadeRec_coupling`, Lemma 14.3.6 (a)
   in raw coordinates): at `λ = 0` the one-site function is `log ch A + log ch B`, the two copies
   read the same marks below `τ` and independent ones from `τ` on, and the halved exponents turn
   the square into the factor `2`;
@@ -24,7 +25,7 @@ side of (14.147) at `λ = 0` is exactly twice the Parisi functional. The three i
   `m_{k+1} = 1` absorbed in `X₀` (14.84) it is the last term of the functional
   (`coupling_rhs_zero_eq`).
 
-Hence **Proposition 14.6.3 at `λ = 0`** bounds the constrained free energy (14.149) by
+Hence Proposition 14.6.3 at `λ = 0` bounds the constrained free energy (14.149) by
 `2 𝒫_k(m, q)` (`constrainedFreeEnergy_le_two_parisiFunctional`), as it should.
 -/
 
@@ -90,7 +91,7 @@ lemma pairSiteMark_couplingFactorSgn_one_one {τ : ℕ} (hτ : 1 ≤ τ) (y₀ :
     rw [ite_eq_right hp']
     simp [couplingFactorSgn, hp]
 
-/-- **`Y₀(0) = 2 X₀`** (Talagrand's remark after (14.152); Proposition 14.6.4 (a)): for the
+/-- `Y₀(0) = 2 X₀` (Talagrand's remark after (14.152); Proposition 14.6.4 (a)): for the
 coupling at the level `τ ≥ 1` with `η = 1`, the field `h` on both copies and the exponents
 `n_p = m_p/2` below `τ`, `n_p = m_p` from `τ` on, `Y₀(0) = 2 𝔼_{z₀} X₁(h + z₀)`, `X₁` the
 recursion of `log ch` over the levels with the exponents `m`. -/
@@ -186,7 +187,7 @@ lemma pairDiagDefect_couplingRhoSgn (ξ : ℝ → ℝ) (ρ : ℕ → ℝ) (η : 
 lemma couplingVar_qExt (ξ : ℝ → ℝ) {k : ℕ} (qs : Fin (k + 1) → ℝ) (p : ℕ) :
     couplingVar ξ (qExt qs) p = parisiVar ξ qs p := rfl
 
-/-- **The right-hand side of Proposition 14.6.3 at `λ = 0` is `2 𝒫_k(m, q)`**: with `κ = k`,
+/-- The right-hand side of Proposition 14.6.3 at `λ = 0` is `2 𝒫_k(m, q)`: with `κ = k`,
 `ρ = q`, `η = 1`, `u = q_τ`, `1 ≤ τ ≤ k + 1`, the field `h` and the exponents `n_p = m_p/2` below
 `τ`, `m_p` from `τ` on. -/
 theorem coupling_rhs_zero_eq (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ} (ms : Fin k → ℝ)
@@ -216,6 +217,52 @@ theorem coupling_rhs_zero_eq (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ} (ms : Fin k 
   rw [hs, hv]
   unfold parisiTheta
   ring
+
+/-! ### The common i.i.d. external-field law -/
+
+/-- The coupled bound at zero coupling is twice the law-level Parisi functional.
+The external-field expectation uses one common field for both replicas. -/
+theorem randomField_coupling_rhs_zero_eq {μh : Measure ℝ} [IsProbabilityMeasure μh]
+    (hμh : Integrable (fun h : ℝ => h) μh) (ξ : ℝ → ℝ) {k : ℕ}
+    (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ)
+    (hpos : ∀ i, 0 < ms i) (hle : ∀ i, ms i ≤ 1) {τ : ℕ} (hτ : 1 ≤ τ)
+    (hτk : τ ≤ k + 1) (hmonoTop : deriv ξ (qExt qs (k + 1)) ≤ deriv ξ (qExt qs (k + 2))) :
+    2 * Real.log 2
+        + randomFieldPairSiteY₀ μh (halveBelow (τ - 1) ms) (couplingVar ξ (qExt qs) 0)
+          (fun p => couplingVar ξ (qExt qs) (p.val + 1)) 0 (couplingFactorSgn 1 τ 0)
+          (fun p => couplingFactorSgn 1 τ (p.val + 1))
+        - couplingLevelSum ξ (qExt qs) τ (halveBelow (τ - 1) ms)
+        + pairDiagDefect ξ (qExt qs τ)
+          (fun l l' => couplingRhoSgn (qExt qs) 1 τ l l' (k + 1))
+      = 2 * randomFieldParisiFunctional μh ξ ms qs := by
+  let Y : ℝ → ℝ := fun h => pairSiteY₀ (J := Fin 2) (halveBelow (τ - 1) ms)
+    (couplingVar ξ (qExt qs) 0) (fun p => couplingVar ξ (qExt qs) (p.val + 1))
+    0 (fun _ => h) (couplingFactorSgn 1 τ 0) (fun p => couplingFactorSgn 1 τ (p.val + 1))
+  let C := 2 * Real.log 2 - couplingLevelSum ξ (qExt qs) τ (halveBelow (τ - 1) ms)
+    + pairDiagDefect ξ (qExt qs τ)
+      (fun l l' => couplingRhoSgn (qExt qs) 1 τ l l' (k + 1))
+  have hpoint : ∀ h, Y h + C = 2 * parisiFunctional ξ h ms qs := by
+    intro h
+    have hb := coupling_rhs_zero_eq ξ h ms qs hpos hle hτ hτk hmonoTop
+    simp only [zero_mul, one_mul, sub_zero] at hb
+    dsimp [Y, C]
+    linarith
+  have hPF := integrable_parisiFunctional_externalField hμh ξ ms qs hpos hle
+  have hY : Integrable Y μh := by
+    refine ((hPF.const_mul 2).sub (integrable_const C)).congr
+      (Filter.Eventually.of_forall fun h => ?_)
+    change 2 * parisiFunctional ξ h ms qs - C = Y h
+    linarith [hpoint h]
+  have hi := integral_congr_ae (μ := μh) (Filter.Eventually.of_forall hpoint)
+  rw [integral_add hY (integrable_const C), integral_const, integral_const_mul] at hi
+  simp only [probReal_univ, one_smul] at hi
+  rw [randomFieldParisiFunctional_eq_integral hμh ξ ms qs hpos hle]
+  change 2 * Real.log 2 + (∫ h, Y h ∂μh)
+    - couplingLevelSum ξ (qExt qs) τ (halveBelow (τ - 1) ms)
+    + pairDiagDefect ξ (qExt qs τ)
+      (fun l l' => couplingRhoSgn (qExt qs) 1 τ l l' (k + 1)) = _
+  dsimp [C] at hi
+  linarith
 
 /-- `F₁` for `log ch` is even in the field: the marks are symmetric. -/
 lemma logCoshRec_neg (ms : Fin κ → ℝ) (vs : Fin κ → ℝ≥0) (a : ℝ) :
@@ -263,7 +310,7 @@ universe u
 
 variable {Ω : Type u} [MeasurableSpace Ω] {Pm : Measure Ω} [IsProbabilityMeasure Pm]
 
-/-- **Proposition 14.6.3 at `λ = 0`, for `u = q_τ ≥ 0`** (Talagrand's check after (14.152)): the
+/-- Proposition 14.6.3 at `λ = 0`, for `u = q_τ ≥ 0` (Talagrand's check after (14.152)): the
 constrained free energy `(1/N) 𝔼 log ∑_{R_{1,2}=q_τ} e^{−H_N(σ¹) − H_N(σ²) + h ∑ᵢ (σ¹ᵢ + σ²ᵢ)}`
 is at most `2 𝒫_k(m, q)`, for a convex `ξ` with `ξ'(0) = 0` (no evenness is needed for `u ≥ 0`),
 `0 = q₀ ≤ q₁ ≤ ⋯ ≤ q_{k+2} = 1` along which `ξ'` is nondecreasing, `1 ≤ τ ≤ k + 1` and

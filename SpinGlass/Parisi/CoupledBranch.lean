@@ -22,8 +22,8 @@ the two-copy (14.73)). The branch Hamiltonian of the pair
 
 carries the whole interpolation in its parameters: `H = √s H_N`, and `K = √(1-s) L + L'` for the
 interpolating factors `L` and the factors `L'` of the external field `H⁰` of (14.136); `λ` is the
-parameter of the bound (14.140) and `a` a deterministic external field. Its **constrained partition
-function** `∑_σ c_σ e^{-H(σ)}` (`pairBranchZX`, `pairHamG` in `ℝ≥0∞`), with `c = 1_{R_{1,2} = u}`
+parameter of the bound (14.140) and `a` a realized site field. Its constrained partition
+function `∑_σ c_σ e^{-H(σ)}` (`pairBranchZX`, `pairHamG` in `ℝ≥0∞`), with `c = 1_{R_{1,2} = u}`
 for (14.125), has finite Gaussian moments (`cascadeRec_pairHamG_ne_top`, Talagrand's (14.4)), and
 at `H = 0` without constraint it is `∏ᵢ 4 (ch A_i ch B_i ch λ + sh A_i sh B_i sh λ)` by (14.142)
 (`pairBranchZX_one_zero`), i.e. `exp (N log 4 + Y_{κ+1})` for the site sum `Y_{κ+1}` of (14.144)
@@ -76,7 +76,7 @@ def pairBranchMark (K₀ : Fin 2 → J → ℝ) (K : Fin k → Fin 2 → J → �
     (z₀ : Fin N × J → ℝ) (x : Fin k → Fin N × J → ℝ) (l : Fin 2) (i : Fin N) : ℝ :=
   ∑ j, K₀ l j * z₀ (i, j) + ∑ p, ∑ j, K p l j * x p (i, j)
 
-/-- **The coupled field along a branch** (the two-copy (14.73)): at `(σ, α)` the field of
+/-- The coupled field along a branch (the two-copy (14.73)): at `(σ, α)` the field of
 `pairTreeField` is `∑_ℓ ∑_i σ^ℓ_i y^ℓ_i` with the marks of the nodes of `α`. -/
 theorem pairTreeLin_siteTreeCoords_apply (M : ℕ) (L₀ : Fin 2 → J → ℝ)
     (L : Fin k → Fin 2 → J → ℝ) (ω : SiteMarksSpace (Fin N × J) k)
@@ -379,7 +379,7 @@ lemma cosh_mul_cosh_mul_cosh_add_sinh_mul_sinh_mul_sinh_pos (a b lam : ℝ) :
   have h4 := Real.exp_pos (-lam)
   positivity
 
-/-- **(14.142) summed over the sites**: at `H = 0` and without constraint, the branch partition
+/-- (14.142) summed over the sites: at `H = 0` and without constraint, the branch partition
 function is `∏ᵢ 4 (ch A_i ch B_i ch λ + sh A_i sh B_i sh λ)`, `A_i = a(i,1) + y¹_i`,
 `B_i = a(i,2) + y²_i`. -/
 theorem pairBranchZX_one_zero (lam : ℝ) (a : Fin N × Fin 2 → ℝ) (K₀ : Fin 2 → J → ℝ)

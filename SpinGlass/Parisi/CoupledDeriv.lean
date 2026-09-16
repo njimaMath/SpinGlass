@@ -47,7 +47,7 @@ lemma hasDerivAt_pairSiteY (A B lam : ℝ) :
     ((Real.hasDerivAt_cosh lam).const_mul _).add ((Real.hasDerivAt_sinh lam).const_mul _)
   exact h1.log (cosh_mul_cosh_mul_cosh_add_sinh_mul_sinh_mul_sinh_pos A B lam).ne'
 
-/-- **Talagrand's inequality** (proof of Lemma 14.6.5):
+/-- Talagrand's inequality (proof of Lemma 14.6.5):
 `|ch A ch B sh λ + sh A sh B ch λ| ≤ ch A ch B ch λ + sh A sh B sh λ`, i.e. `|∂_λ Y_{κ+1}| ≤ 1`. -/
 lemma abs_pairSiteY'_le_one (lam A B : ℝ) : |pairSiteY' lam A B| ≤ 1 := by
   unfold pairSiteY'
@@ -135,7 +135,7 @@ lemma continuous_pairSiteF'_prod (h : Fin 2 → ℝ) (K₀ : Fin 2 → J → ℝ
   have hc := continuous_pairSiteY'.comp hf
   exact hc
 
-/-- **Talagrand's (14.4) for the one-site branch function**: `∫ e^{Y_{κ+1}} d(marks) < ∞`, by the
+/-- Talagrand's (14.4) for the one-site branch function: `∫ e^{Y_{κ+1}} d(marks) < ∞`, by the
 Gaussian integrals of the four exponentials of (14.142). -/
 theorem lintegral_ofReal_exp_pairSiteF_ne_top (vs : Fin κ → ℝ≥0) (lam : ℝ) (h : Fin 2 → ℝ)
     (K₀ : Fin 2 → J → ℝ) (K : Fin κ → Fin 2 → J → ℝ) (y₀ : J → ℝ) :
@@ -208,7 +208,7 @@ lemma measurable_parisiRec_pairSiteF (ns : Fin κ → ℝ) (vs : Fin κ → ℝ�
 
 /-! ### The derivative of `Y₁` and of `Y₀` in `λ` -/
 
-/-- **Talagrand's (14.185), iterated**: `Y₁(λ, y₀)` is differentiable in `λ`, with derivative the
+/-- Talagrand's (14.185), iterated: `Y₁(λ, y₀)` is differentiable in `λ`, with derivative the
 tilted average `𝔼(W₁ ⋯ W_κ ∂_λ Y_{κ+1})`. -/
 theorem hasDerivAt_parisiRec_pairSiteF (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < ns i)
     (hle : ∀ i, ns i ≤ 1) (vs : Fin κ → ℝ≥0) (lam : ℝ) (h : Fin 2 → ℝ) (K₀ : Fin 2 → J → ℝ)
@@ -262,6 +262,7 @@ lemma abs_integral_pairSiteF'_le_one (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < ns
       rw [Real.norm_eq_abs]; exact abs_pairSiteF'_le_one _ _ _ _ _ _)
   rwa [probReal_univ, mul_one, Real.norm_eq_abs] at hb
 
+
 universe u
 
 variable {J' : Type u} [Fintype J']
@@ -290,14 +291,70 @@ theorem integrable_parisiRec_pairSiteF (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < 
   rw [← hmp.integrable_comp (measurable_parisiRec_pairSiteF ns vs lam h K₀ K).aestronglyMeasurable]
   exact hI.congr (Filter.Eventually.of_forall fun z₀ => hpt z₀)
 
-/-- **The derivative of Talagrand's `Y₀(λ)`**: `Y₀'(λ) = 𝔼_{y₀} 𝔼(W₁ ⋯ W_κ ∂_λ Y_{κ+1})`. -/
+/-- The derivative of Talagrand's `Y₀(λ)`: `Y₀'(λ) = 𝔼_{y₀} 𝔼(W₁ ⋯ W_κ ∂_λ Y_{κ+1})`. -/
 def pairSiteY₀' (ns : Fin κ → ℝ) (v₀ : ℝ≥0) (vs : Fin κ → ℝ≥0) (lam : ℝ) (h : Fin 2 → ℝ)
     (K₀ : Fin 2 → J → ℝ) (K : Fin κ → Fin 2 → J → ℝ) : ℝ :=
   ∫ y₀, (∫ y, pairSiteF' lam h K₀ K y₀ y ∂cascadeTiltMeasure κ ns (siteGaussianMarks J κ vs)
       (fun y => ENNReal.ofReal (Real.exp (pairSiteF lam h K₀ K y₀ y))))
     ∂Measure.pi fun _ : J => gaussianReal 0 v₀
 
-/-- **`Y₀` is differentiable in `λ`**, with derivative `Y₀'(λ) = 𝔼_{y₀} 𝔼(W₁ ⋯ W_κ ∂_λ Y_{κ+1})`. -/
+/-- The derivative averaged over the common quenched site law. -/
+def randomFieldPairSiteY₀' (μh : Measure ℝ) (ns : Fin κ → ℝ) (v₀ : ℝ≥0)
+    (vs : Fin κ → ℝ≥0) (lam : ℝ) (K₀ : Fin 2 → J' → ℝ)
+    (K : Fin κ → Fin 2 → J' → ℝ) : ℝ :=
+  ∫ h, pairSiteY₀' ns v₀ vs lam (fun _ => h) K₀ K ∂μh
+
+/-- The spatially common field coordinate is measurable in the coupled derivative. -/
+lemma measurable_pairSiteY₀'_commonField (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < ns i)
+    (hle : ∀ i, ns i ≤ 1) (v₀ : ℝ≥0) (vs : Fin κ → ℝ≥0) (lam : ℝ)
+    (K₀ : Fin 2 → J' → ℝ) (K : Fin κ → Fin 2 → J' → ℝ) :
+    Measurable (fun h : ℝ => pairSiteY₀' ns v₀ vs lam (fun _ => h) K₀ K) := by
+  let G := fun q : ℝ × (J' → ℝ) => fun y : Fin κ → J' → ℝ =>
+    ENNReal.ofReal (Real.exp (pairSiteF lam (fun _ => q.1) K₀ K q.2 y))
+  have hG : Measurable (Function.uncurry G) := by
+    apply Continuous.measurable
+    apply ENNReal.continuous_ofReal.comp
+    apply Real.continuous_exp.comp
+    unfold pairSiteF pairSiteY pairSiteMark
+    apply Continuous.log
+    · fun_prop
+    · intro q
+      exact (cosh_mul_cosh_mul_cosh_add_sinh_mul_sinh_mul_sinh_pos _ _ _).ne'
+  have hF' : Measurable (fun q : (ℝ × (J' → ℝ)) × (Fin κ → J' → ℝ) =>
+      pairSiteF' lam (fun _ => q.1.1) K₀ K q.1.2 q.2) := by
+    apply Continuous.measurable
+    unfold pairSiteF' pairSiteY' pairSiteMark
+    apply Continuous.div
+    · fun_prop
+    · fun_prop
+    · intro q
+      exact (cosh_mul_cosh_mul_cosh_add_sinh_mul_sinh_mul_sinh_pos _ _ _).ne'
+  have hd := (measurable_cascadeTiltDensity_prod κ ns (siteGaussianMarks J' κ vs)
+    (Gs := G) hG).ennreal_toReal.mul hF'
+  have hi := hd.stronglyMeasurable.integral_prod_right'
+    (ν := Measure.pi (siteGaussianMarks J' κ vs))
+  have heq : ∀ q : ℝ × (J' → ℝ),
+      (∫ y, (cascadeTiltDensity κ ns (siteGaussianMarks J' κ vs) (G q) y).toReal
+        * pairSiteF' lam (fun _ => q.1) K₀ K q.2 y
+        ∂Measure.pi (siteGaussianMarks J' κ vs))
+      = ∫ y, pairSiteF' lam (fun _ => q.1) K₀ K q.2 y
+        ∂cascadeTiltMeasure κ ns (siteGaussianMarks J' κ vs) (G q) := by
+    intro q
+    rw [integral_cascadeTiltMeasure κ ns (siteGaussianMarks J' κ vs)
+      (G := G q) (measurable_pairSiteF' lam (fun _ => q.1) K₀ K q.2).exp.ennreal_ofReal
+      (fun _ => ENNReal.ofReal_pos.2 (Real.exp_pos _)) hpos hle
+      (lintegral_ofReal_exp_pairSiteF_ne_top vs lam (fun _ => q.1) K₀ K q.2)]
+    simp only [smul_eq_mul]
+  have hm : Measurable (fun q : ℝ × (J' → ℝ) =>
+      ∫ y, pairSiteF' lam (fun _ => q.1) K₀ K q.2 y
+        ∂cascadeTiltMeasure κ ns (siteGaussianMarks J' κ vs) (G q)) := by
+    convert hi.measurable using 1
+    funext q
+    exact (heq q).symm
+  exact (hm.stronglyMeasurable.integral_prod_right'
+    (ν := Measure.pi fun _ : J' => gaussianReal 0 v₀)).measurable
+
+/-- `Y₀` is differentiable in `λ`, with derivative `Y₀'(λ) = 𝔼_{y₀} 𝔼(W₁ ⋯ W_κ ∂_λ Y_{κ+1})`. -/
 theorem hasDerivAt_pairSiteY₀ (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < ns i)
     (hle : ∀ i, ns i ≤ 1) (v₀ : ℝ≥0) (vs : Fin κ → ℝ≥0) (lam : ℝ) (h : Fin 2 → ℝ)
     (K₀ : Fin 2 → J' → ℝ) (K : Fin κ → Fin 2 → J' → ℝ) :
@@ -369,6 +426,41 @@ theorem abs_pairSiteY₀'_le_one (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < ns i) 
     (C := 1) (Filter.Eventually.of_forall fun y₀ => by
       rw [Real.norm_eq_abs]; exact abs_integral_pairSiteF'_le_one ns hpos hle vs lam h K₀ K y₀)
   rwa [probReal_univ, mul_one, Real.norm_eq_abs] at hb
+
+/-- Differentiation under a general external-field law, conditional on integrability at `lam`.
+The domination is uniform in the external field. -/
+theorem hasDerivAt_randomFieldPairSiteY₀ {μh : Measure ℝ} [IsProbabilityMeasure μh]
+    (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < ns i) (hle : ∀ i, ns i ≤ 1)
+    (v₀ : ℝ≥0) (vs : Fin κ → ℝ≥0) (lam : ℝ)
+    (K₀ : Fin 2 → J' → ℝ) (K : Fin κ → Fin 2 → J' → ℝ)
+    (hY : Integrable (fun h : ℝ => pairSiteY₀ ns v₀ vs lam (fun _ => h) K₀ K) μh) :
+    HasDerivAt (fun l => randomFieldPairSiteY₀ μh ns v₀ vs l K₀ K)
+      (randomFieldPairSiteY₀' μh ns v₀ vs lam K₀ K) lam := by
+  unfold randomFieldPairSiteY₀ randomFieldPairSiteY₀'
+  exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le (μ := μh) (s := Set.univ)
+    (F := fun l h => pairSiteY₀ ns v₀ vs l (fun _ => h) K₀ K)
+    (F' := fun l h => pairSiteY₀' ns v₀ vs l (fun _ => h) K₀ K)
+    (bound := fun _ => 1) Filter.univ_mem
+    (Filter.Eventually.of_forall fun l =>
+      ((measurable_pairSiteY₀_commonField ns v₀ vs K₀ K).comp
+        (measurable_const.prodMk measurable_id)).aestronglyMeasurable)
+    hY (measurable_pairSiteY₀'_commonField ns hpos hle v₀ vs lam K₀ K).aestronglyMeasurable
+    (Filter.Eventually.of_forall fun h l _ => by
+      rw [Real.norm_eq_abs]
+      exact abs_pairSiteY₀'_le_one ns hpos hle v₀ vs l (fun _ => h) K₀ K)
+    (integrable_const _) (Filter.Eventually.of_forall fun h l _ =>
+      hasDerivAt_pairSiteY₀ ns hpos hle v₀ vs l (fun _ => h) K₀ K)).2
+
+theorem abs_randomFieldPairSiteY₀'_le_one {μh : Measure ℝ} [IsProbabilityMeasure μh]
+    (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < ns i) (hle : ∀ i, ns i ≤ 1)
+    (v₀ : ℝ≥0) (vs : Fin κ → ℝ≥0) (lam : ℝ)
+    (K₀ : Fin 2 → J' → ℝ) (K : Fin κ → Fin 2 → J' → ℝ) :
+    |randomFieldPairSiteY₀' μh ns v₀ vs lam K₀ K| ≤ 1 := by
+  have hb := norm_integral_le_of_norm_le_const (μ := μh) (C := 1)
+    (Filter.Eventually.of_forall fun h => by
+      rw [Real.norm_eq_abs]
+      exact abs_pairSiteY₀'_le_one ns hpos hle v₀ vs lam (fun _ => h) K₀ K)
+  simpa [randomFieldPairSiteY₀', probReal_univ, Real.norm_eq_abs] using hb
 
 end
 
@@ -1645,6 +1737,33 @@ theorem pairSiteY₀_coupling_zero_and_deriv
           ∂gaussianReal 0 v₀ := by
   exact ⟨pairSiteY₀_coupling_zero ms hpos v₀ vs h hτ,
     pairSiteY₀'_coupling_zero ms hpos hle v₀ vs h hτ⟩
+
+/-- Proposition 14.6.4(a) after averaging the general common i.i.d. site-field law.
+The finite first moment supplies integrability at zero coupling. -/
+theorem hasDerivAt_randomFieldPairSiteY₀_coupling_zero
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] (hμh : Integrable (fun h : ℝ => h) μh)
+    (ms : Fin κ → ℝ) (hpos : ∀ i, 0 < ms i) (hle : ∀ i, ms i ≤ 1)
+    (v₀ : ℝ≥0) (vs : Fin κ → ℝ≥0) {τ : ℕ} (hτ : 1 ≤ τ) :
+    HasDerivAt
+      (fun lam => randomFieldPairSiteY₀ μh (halveBelow (τ - 1) ms) v₀ vs lam
+        (couplingFactorSgn 1 τ 0) (fun p => couplingFactorSgn 1 τ (p.val + 1)))
+      (∫ h, ∫ a, cascadeTiltTanhSq ms vs (τ - 1) (h + a) ∂gaussianReal 0 v₀ ∂μh) 0 := by
+  have hY : Integrable (fun h : ℝ => pairSiteY₀ (J := Fin 2)
+      (halveBelow (τ - 1) ms) v₀ vs 0 (fun _ => h)
+      (couplingFactorSgn 1 τ 0) (fun p => couplingFactorSgn 1 τ (p.val + 1))) μh := by
+    have hi := (integrable_integral_logCoshRec_externalField hμh ms vs hpos hle v₀).const_mul 2
+    refine hi.congr (Filter.Eventually.of_forall fun h => ?_)
+    exact (pairSiteY₀_coupling_zero ms hpos v₀ vs h hτ).symm
+  have hd := hasDerivAt_randomFieldPairSiteY₀ (μh := μh) (halveBelow (τ - 1) ms)
+    (fun i => halveBelow_pos hpos _ i) (fun i => halveBelow_le_one hle _ i)
+    v₀ vs 0 (couplingFactorSgn 1 τ 0) (fun p => couplingFactorSgn 1 τ (p.val + 1)) hY
+  have heq : randomFieldPairSiteY₀' μh (halveBelow (τ - 1) ms) v₀ vs 0
+      (couplingFactorSgn 1 τ 0) (fun p => couplingFactorSgn 1 τ (p.val + 1))
+      = ∫ h, ∫ a, cascadeTiltTanhSq ms vs (τ - 1) (h + a) ∂gaussianReal 0 v₀ ∂μh := by
+    exact integral_congr_ae (Filter.Eventually.of_forall fun h =>
+      pairSiteY₀'_coupling_zero ms hpos hle v₀ vs h hτ)
+  rw [heq] at hd
+  exact hd
 
 end
 

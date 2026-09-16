@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
 import SpinGlass.Parisi.CoupledParisi
+import SpinGlass.Parisi.RandomExternalField
 import GibbsMeasure.Mathlib.MeasureTheory.Constructions.PiBlocks
 import Common.Mathlib.Data.ENNReal.ProdNeTop
 
@@ -16,7 +17,9 @@ The endpoint of the coupled interpolation is a sum over the sites of the one-sit
 `parisiRec_sum` of the recursion (14.82), transported along the currying
 `(Fin N × J → ℝ) ≃ (Fin N → J → ℝ)` of the marks (`MeasureTheory.map_curry_pi`), the recursion
 `Y₁` of the site-tree function is the sum of the one-site recursions (`parisiRec_pairCoshF`), and
-with the same field at every site `𝔼_{z₀} Y₁ = N · Y₀` (`integral_parisiRec_pairCoshF`), for
+with a realized site vector `𝔼_{z₀} Y₁ = ∑ᵢ Y₀(hᵢ)`
+(`integral_parisiRec_pairCoshF_siteField`). The constant-site specialization is `N · Y₀`
+(`integral_parisiRec_pairCoshF`), for
 Talagrand's `Y₀ = 𝔼 Y₁` (`pairSiteY₀`).
 -/
 
@@ -114,7 +117,7 @@ lemma pairCoshF_eq_sum_pairSiteF (lam : ℝ) (a : Fin N × Fin 2 → ℝ) (K₀ 
 
 /-! ### Site factorization of `Y₁` -/
 
-/-- **Site factorization of `Y₁`** (Talagrand's (14.82) for the coupled scheme):
+/-- Site factorization of `Y₁` (Talagrand's (14.82) for the coupled scheme):
 `Y₁(z₀) = ∑ᵢ Y₁^{(i)}(z₀(i,·))`, the one-site recursion at site `i` having field `a(i,·)` and
 root mark `z₀(i,·)`. -/
 theorem parisiRec_pairCoshF (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < ns i) (hle : ∀ i, ns i ≤ 1)
@@ -175,7 +178,7 @@ theorem parisiRec_pairCoshF (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < ns i) (hle 
 
 /-! ### Talagrand's `Y₀` -/
 
-/-- **Talagrand's `Y₀`** ((14.145), `Y₀ = 𝔼 Y₁`): the one-site recursion, with field `h`, root
+/-- Talagrand's `Y₀` ((14.145), `Y₀ = 𝔼 Y₁`): the one-site recursion, with field `h`, root
 mark `y₀ ∼ N(0, v₀)^J` and marks `y_p ∼ N(0, v_p)^J` along the branch, averaged over `y₀`. -/
 def pairSiteY₀ (ns : Fin κ → ℝ) (v₀ : ℝ≥0) (vs : Fin κ → ℝ≥0) (lam : ℝ) (h : Fin 2 → ℝ)
     (K₀ : Fin 2 → J → ℝ) (K : Fin κ → Fin 2 → J → ℝ) : ℝ :=
@@ -213,61 +216,117 @@ theorem integrable_parisiRec_pairCoshF_rootMarksLaw (ns : Fin κ → ℝ) (hpos 
   exact ((measurePreserving_snd (μ := (Measure.dirac PUnit.unit : Measure PUnit.{u + 1}))
     (ν := rootMarksLaw N v₀)).integrable_comp hmeas).1 hI
 
-/-- **`𝔼_{z₀} Y₁(z₀) = N · Y₀`** when the field is the same `h` at every site (Talagrand's
-(14.143)–(14.145)): the sites are independent and identically distributed. -/
+/-- The root-mark expectation of `Y₁` is the sum of the conditional one-site `Y₀` values
+for an arbitrary realized site vector, as in (14.143)–(14.145). -/
+theorem integral_parisiRec_pairCoshF_siteField (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < ns i)
+    (hle : ∀ i, ns i ≤ 1) (v₀ : ℝ≥0) (vs : Fin κ → ℝ≥0) (lam : ℝ)
+    (a : Fin N × Fin 2 → ℝ) (K₀ : Fin 2 → J' → ℝ) (K : Fin κ → Fin 2 → J' → ℝ) :
+    ∫ z₀, parisiRec κ ns (siteGaussianMarks (Fin N × J') κ vs)
+        (pairCoshF N κ lam a K₀ K z₀) ∂rootMarksLaw N v₀
+      = ∑ i, pairSiteY₀ ns v₀ vs lam (fun l => a (i, l)) K₀ K := by
+  classical
+  -- the one-site recursion at site `i`, as a function of the root marks
+  set f : Fin N → (J' → ℝ) → ℝ := fun i y₀ => parisiRec κ ns (siteGaussianMarks J' κ vs)
+    (pairSiteF lam (fun l => a (i, l)) K₀ K y₀) with hf
+  have hfm : ∀ i, Measurable (f i) := by
+    intro i
+    have hc := (continuous_pairSiteF lam (fun l => a (i, l)) K₀ K)
+    have hG : Measurable (Function.uncurry fun (y₀ : J' → ℝ) (y : Fin κ → J' → ℝ) =>
+        ENNReal.ofReal (Real.exp (pairSiteF lam (fun l => a (i, l)) K₀ K y₀ y))) := by
+      have h := ENNReal.measurable_ofReal.comp (Real.measurable_exp.comp hc.measurable)
+      exact h
+    have hR : Measurable fun y₀ : J' → ℝ => cascadeRec κ ns (siteGaussianMarks J' κ vs)
+        (fun y => ENNReal.ofReal (Real.exp (pairSiteF lam (fun l => a (i, l)) K₀ K y₀ y))) :=
+      measurable_cascadeRec_prod κ ns (siteGaussianMarks J' κ vs) hG
+    exact hR.ennreal_toReal.log
+  have hf0 : ∀ i y₀, 0 ≤ f i y₀ := fun i y₀ =>
+    parisiRec_nonneg κ ns _ (fun y => pairSiteF_nonneg lam (fun l => a (i, l)) K₀ K y₀ y) hpos
+  -- the site factorization, pointwise
+  have hsum : ∀ z₀ : Fin N × J' → ℝ, parisiRec κ ns (siteGaussianMarks (Fin N × J') κ vs)
+      (pairCoshF N κ lam a K₀ K z₀) = ∑ i, f i (fun j => z₀ (i, j)) := fun z₀ =>
+    parisiRec_pairCoshF N ns hpos hle vs lam a K₀ K z₀
+  -- each site term is dominated by the (integrable) sum
+  have hY := integrable_parisiRec_pairCoshF_rootMarksLaw N ns hpos hle lam a
+    K₀ K v₀ vs
+  have hcoord : ∀ i : Fin N, Measurable fun z₀ : Fin N × J' → ℝ => fun j => z₀ (i, j) :=
+    fun i => measurable_pi_lambda _ fun j => measurable_pi_apply (i, j)
+  have hterm : ∀ i : Fin N, Integrable (fun z₀ : Fin N × J' → ℝ => f i (fun j => z₀ (i, j)))
+      (rootMarksLaw N v₀) := by
+    intro i
+    refine hY.mono' ((hfm i).comp (hcoord i)).aestronglyMeasurable
+      (Filter.Eventually.of_forall fun z₀ => ?_)
+    rw [hsum z₀, Real.norm_eq_abs, abs_of_nonneg (hf0 i _)]
+    exact Finset.single_le_sum (f := fun i => f i (fun j => z₀ (i, j)))
+      (fun i _ => hf0 i _) (Finset.mem_univ i)
+  -- the law of the root marks at one site
+  have hsite : ∀ i : Fin N, ∫ z₀, f i (fun j => z₀ (i, j)) ∂rootMarksLaw N v₀
+      = ∫ y₀, f i y₀ ∂Measure.pi fun _ : J' => gaussianReal 0 v₀ := by
+    intro i
+    have hg : Function.Injective fun j : J' => ((i, j) : Fin N × J') :=
+      fun j j' hjj' => (Prod.mk.inj hjj').2
+    have hmap := map_comp_pi_of_injective (gaussianReal 0 v₀) hg
+    rw [← hmap, integral_map (measurable_comp_right (E := ℝ) _).aemeasurable
+      (hfm i).aestronglyMeasurable]
+    rfl
+  rw [integral_congr_ae (Filter.Eventually.of_forall hsum), integral_finsetSum _ fun i _ => hterm i,
+    Finset.sum_congr rfl fun i _ => hsite i]
+  rfl
+
+/-- Constant site fields specialize the general site-vector factorization. -/
 theorem integral_parisiRec_pairCoshF (ns : Fin κ → ℝ) (hpos : ∀ i, 0 < ns i)
     (hle : ∀ i, ns i ≤ 1) (v₀ : ℝ≥0) (vs : Fin κ → ℝ≥0) (lam : ℝ)
     (h : Fin 2 → ℝ) (K₀ : Fin 2 → J' → ℝ) (K : Fin κ → Fin 2 → J' → ℝ) :
     ∫ z₀, parisiRec κ ns (siteGaussianMarks (Fin N × J') κ vs)
         (pairCoshF N κ lam (fun s => h s.2) K₀ K z₀) ∂rootMarksLaw N v₀
       = N * pairSiteY₀ ns v₀ vs lam h K₀ K := by
-  classical
-  -- the one-site recursion at site `i`, as a function of the root marks
-  set f : (J' → ℝ) → ℝ := fun y₀ => parisiRec κ ns (siteGaussianMarks J' κ vs)
-    (pairSiteF lam h K₀ K y₀) with hf
-  have hfm : Measurable f := by
-    have hc := (continuous_pairSiteF lam h K₀ K)
-    have hG : Measurable (Function.uncurry fun (y₀ : J' → ℝ) (y : Fin κ → J' → ℝ) =>
-        ENNReal.ofReal (Real.exp (pairSiteF lam h K₀ K y₀ y))) := by
-      have h := ENNReal.measurable_ofReal.comp (Real.measurable_exp.comp hc.measurable)
-      exact h
-    have hR : Measurable fun y₀ : J' → ℝ => cascadeRec κ ns (siteGaussianMarks J' κ vs)
-        (fun y => ENNReal.ofReal (Real.exp (pairSiteF lam h K₀ K y₀ y))) :=
-      measurable_cascadeRec_prod κ ns (siteGaussianMarks J' κ vs) hG
-    exact hR.ennreal_toReal.log
-  have hf0 : ∀ y₀, 0 ≤ f y₀ := fun y₀ =>
-    parisiRec_nonneg κ ns _ (fun y => pairSiteF_nonneg lam h K₀ K y₀ y) hpos
-  -- the site factorization, pointwise
-  have hsum : ∀ z₀ : Fin N × J' → ℝ, parisiRec κ ns (siteGaussianMarks (Fin N × J') κ vs)
-      (pairCoshF N κ lam (fun s => h s.2) K₀ K z₀) = ∑ i, f (fun j => z₀ (i, j)) := fun z₀ =>
-    parisiRec_pairCoshF N ns hpos hle vs lam (fun s => h s.2) K₀ K z₀
-  -- each site term is dominated by the (integrable) sum
-  have hY := integrable_parisiRec_pairCoshF_rootMarksLaw N ns hpos hle lam (fun s => h s.2)
-    K₀ K v₀ vs
-  have hcoord : ∀ i : Fin N, Measurable fun z₀ : Fin N × J' → ℝ => fun j => z₀ (i, j) :=
-    fun i => measurable_pi_lambda _ fun j => measurable_pi_apply (i, j)
-  have hterm : ∀ i : Fin N, Integrable (fun z₀ : Fin N × J' → ℝ => f (fun j => z₀ (i, j)))
-      (rootMarksLaw N v₀) := by
-    intro i
-    refine hY.mono' (hfm.comp (hcoord i)).aestronglyMeasurable
-      (Filter.Eventually.of_forall fun z₀ => ?_)
-    rw [hsum z₀, Real.norm_eq_abs, abs_of_nonneg (hf0 _)]
-    exact Finset.single_le_sum (f := fun i => f (fun j => z₀ (i, j)))
-      (fun i _ => hf0 _) (Finset.mem_univ i)
-  -- the law of the root marks at one site
-  have hsite : ∀ i : Fin N, ∫ z₀, f (fun j => z₀ (i, j)) ∂rootMarksLaw N v₀
-      = ∫ y₀, f y₀ ∂Measure.pi fun _ : J' => gaussianReal 0 v₀ := by
-    intro i
-    have hg : Function.Injective fun j : J' => ((i, j) : Fin N × J') :=
-      fun j j' hjj' => (Prod.mk.inj hjj').2
-    have hmap := map_comp_pi_of_injective (gaussianReal 0 v₀) hg
-    rw [← hmap, integral_map (measurable_comp_right (E := ℝ) _).aemeasurable
-      hfm.aestronglyMeasurable]
-    rfl
-  rw [integral_congr_ae (Filter.Eventually.of_forall hsum), integral_finsetSum _ fun i _ => hterm i,
-    Finset.sum_congr rfl fun i _ => hsite i, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
-    nsmul_eq_mul]
-  rfl
+  rw [integral_parisiRec_pairCoshF_siteField N ns hpos hle v₀ vs lam]
+  simp [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+
+/-- The coupled one-site expectation for the common quenched site law.
+Both replicas use the same external-field coordinate. -/
+def randomFieldPairSiteY₀ (μh : Measure ℝ) (ns : Fin κ → ℝ) (v₀ : ℝ≥0)
+    (vs : Fin κ → ℝ≥0) (lam : ℝ) (K₀ : Fin 2 → J' → ℝ)
+    (K : Fin κ → Fin 2 → J' → ℝ) : ℝ :=
+  ∫ h, pairSiteY₀ ns v₀ vs lam (fun _ => h) K₀ K ∂μh
+
+/-- Joint measurability in the coupling and the common external-field coordinate. -/
+lemma measurable_pairSiteY₀_commonField (ns : Fin κ → ℝ) (v₀ : ℝ≥0)
+    (vs : Fin κ → ℝ≥0) (K₀ : Fin 2 → J' → ℝ) (K : Fin κ → Fin 2 → J' → ℝ) :
+    Measurable (fun q : ℝ × ℝ => pairSiteY₀ ns v₀ vs q.1 (fun _ => q.2) K₀ K) := by
+  have hF : Measurable (fun q : ((ℝ × ℝ) × (J' → ℝ)) × (Fin κ → J' → ℝ) =>
+      ENNReal.ofReal (Real.exp (pairSiteF q.1.1.1 (fun _ => q.1.1.2) K₀ K q.1.2 q.2))) := by
+    apply Continuous.measurable
+    apply ENNReal.continuous_ofReal.comp
+    apply Real.continuous_exp.comp
+    unfold pairSiteF pairSiteY pairSiteMark
+    apply Continuous.log
+    · fun_prop
+    · intro q
+      exact (cosh_mul_cosh_mul_cosh_add_sinh_mul_sinh_mul_sinh_pos _ _ _).ne'
+  have hR := measurable_cascadeRec_prod κ ns (siteGaussianMarks J' κ vs)
+    (G := fun q : (ℝ × ℝ) × (J' → ℝ) => fun y =>
+      ENNReal.ofReal (Real.exp (pairSiteF q.1.1 (fun _ => q.1.2) K₀ K q.2 y))) hF
+  exact (hR.ennreal_toReal.log.stronglyMeasurable.integral_prod_right'
+    (ν := Measure.pi fun _ : J' => gaussianReal 0 v₀)).measurable
+
+@[simp] theorem randomFieldPairSiteY₀_dirac (h : ℝ) (ns : Fin κ → ℝ) (v₀ : ℝ≥0)
+    (vs : Fin κ → ℝ≥0) (lam : ℝ) (K₀ : Fin 2 → J' → ℝ)
+    (K : Fin κ → Fin 2 → J' → ℝ) :
+    randomFieldPairSiteY₀ (Measure.dirac h) ns v₀ vs lam K₀ K
+      = pairSiteY₀ ns v₀ vs lam (fun _ => h) K₀ K := by
+  simp [randomFieldPairSiteY₀]
+
+/-- The common field in the coupled expectation can be any i.i.d. product coordinate. -/
+theorem randomFieldPairSiteY₀_eq_integral_externalFieldVec_apply
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] (i : Fin N)
+    (ns : Fin κ → ℝ) (v₀ : ℝ≥0) (vs : Fin κ → ℝ≥0) (lam : ℝ)
+    (K₀ : Fin 2 → J' → ℝ) (K : Fin κ → Fin 2 → J' → ℝ) :
+    randomFieldPairSiteY₀ μh ns v₀ vs lam K₀ K
+      = ∫ hVec, pairSiteY₀ ns v₀ vs lam (fun _ => hVec i) K₀ K
+        ∂externalFieldVecLaw N μh := by
+  exact (integral_externalFieldVec_apply N μh i _
+    (((measurable_pairSiteY₀_commonField ns v₀ vs K₀ K).comp
+      (measurable_const.prodMk measurable_id)).aestronglyMeasurable)).symm
 
 end
 

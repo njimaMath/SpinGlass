@@ -19,8 +19,8 @@ arbitrary factors. The level sum becomes (14.152)
 `∑_{ℓ,ℓ'} ∑_p n_p (θ(ρ^{ℓ,ℓ'}_{p+1}) − θ(ρ^{ℓ,ℓ'}_p))
   = 4 ∑_{p < τ} n_p (θ(ρ_{p+1}) − θ(ρ_p)) + 2 ∑_{τ ≤ p ≤ κ} n_p (θ(ρ_{p+1}) − θ(ρ_p))`
 
-(`coupledLevelSum_couplingRhoSgn`), and with the same field at every site the endpoint is
-Talagrand's one-site `Y₀(λ)` (`pairSiteY₀`). This is **Proposition 14.6.3**
+(`coupledLevelSum_couplingRhoSgn`), and the endpoint has a general site-vector form. Its constant-site specialization is
+Talagrand's one-site `Y₀(λ)` (`pairSiteY₀`). This is Proposition 14.6.3
 (`coupled_bound_coupling`), for nondecreasing `0 < n₁ ≤ ⋯ ≤ n_κ ≤ 1` (from the strict case by
 continuity of both sides in the exponents, `coupled_bound'_of_monotone`) and a free top value
 `ρ_{κ+1}`; under
@@ -138,7 +138,7 @@ def couplingLevelSum (ξ : ℝ → ℝ) (ρ : ℕ → ℝ) (τ : ℕ) (ns : Fin 
   ∑ p : Fin κ, (if p.val + 1 < τ then (2 : ℝ) else 1)
     * (ns p * (parisiTheta ξ (ρ (p.val + 2)) - parisiTheta ξ (ρ (p.val + 1))))
 
-/-- **(14.152)**: for the coupling, the level sum of (14.147) is twice `couplingLevelSum`, as
+/-- (14.152): for the coupling, the level sum of (14.147) is twice `couplingLevelSum`, as
 soon as `θ(η x) = θ(x)` (automatic for `η = 1`, and for `η = -1` when `ξ` is even). -/
 theorem coupledLevelSum_couplingRhoSgn {ξ : ℝ → ℝ} {η : ℝ}
     (hθ : ∀ x, parisiTheta ξ (η * x) = parisiTheta ξ x) (ρ : ℕ → ℝ) (τ : ℕ) (ns : Fin κ → ℝ) :
@@ -174,7 +174,7 @@ lemma coe_couplingVar {ξ : ℝ → ℝ} {ρ : ℕ → ℝ} {p : ℕ}
   Real.coe_toNNReal _ (sub_nonneg.2 h)
 
 omit [DecidableEq J''] in
-/-- **The covariance identities (14.133) for the coupling**: with the variances (14.156) and the
+/-- The covariance identities (14.133) for the coupling: with the variances (14.156) and the
 factors (14.157), `𝔼 y^ℓ_p y^{ℓ'}_p = ξ'(ρ^{ℓ,ℓ'}_{p+1}) − ξ'(ρ^{ℓ,ℓ'}_p)`. -/
 lemma couplingVar_mul_gram {ξ : ℝ → ℝ} {η : ℝ} (hη2 : η ^ 2 = 1)
     (hodd : ∀ x, deriv ξ (η * x) = η * deriv ξ x) {ρ : ℕ → ℝ} {τ : ℕ}
@@ -196,7 +196,7 @@ lemma couplingVar_mul_gram {ξ : ℝ → ℝ} {η : ℝ} (hη2 : η ^ 2 = 1)
     · rw [gram_couplingFactorSgn_of_le hpτ, ite_eq_right hll, mul_zero,
         min_eq_right (by omega : τ ≤ p + 1), min_eq_right hpτ, sub_self]
 
-/-- **Proposition 14.6.3** (Talagrand Vol. II, §14.6), for nondecreasing exponents
+/-- Proposition 14.6.3 (Talagrand Vol. II, §14.6), for nondecreasing exponents
 `0 < n₁ ≤ ⋯ ≤ n_κ ≤ 1` and a free top value `ρ_{κ+1}`: for `ξ` lying above its tangent lines at
 the values `ρ_r`, `η ρ_r` — with
 `ξ'(η x) = η ξ'(x)` and `θ(η x) = θ(x)`, automatic for `η = 1` and given by evenness for
@@ -211,6 +211,50 @@ field `h` at every site and any `λ`,
 where `G₁` is the recursion (14.160) of `∑_{R_{1,2}=u} e^{-H_N(σ¹)-H_N(σ²)-H⁰}` in the marks of
 `H⁰`, `Y₀(λ)` is the one-site recursion (14.168)–(14.169) with `g_p = y_p + Z_p`, and `D` is the
 diagonal defect at `ρ_{κ+1}`, which vanishes when `ρ_{κ+1} = 1`, `τ ≤ κ` and `u = η ρ_τ`. -/
+theorem coupled_bound_coupling_siteField (hN : 0 < N) (ξ : ℝ → ℝ) {S : Set ℝ}
+    (htan : ∀ x ∈ Icc (-1 : ℝ) 1, ∀ q ∈ S, ξ q + (x - q) * deriv ξ q ≤ ξ x) (h0 : deriv ξ 0 = 0)
+    (ρ : ℕ → ℝ) (hρ0 : ρ 0 = 0) (hmono : ∀ r, r ≤ κ → deriv ξ (ρ r) ≤ deriv ξ (ρ (r + 1)))
+    {η : ℝ} (hη2 : η ^ 2 = 1) (hodd : ∀ x, deriv ξ (η * x) = η * deriv ξ x)
+    (hθ : ∀ x, parisiTheta ξ (η * x) = parisiTheta ξ x) (hS : ∀ r, ρ r ∈ S)
+    (hS' : ∀ r, η * ρ r ∈ S) (τ : ℕ) (u : ℝ)
+    (hu : ∃ σ : Fin 2 → Config N, overlap N (σ 0) (σ 1) = u)
+    (G₀ : GaussianField (α := Config N) Pm (fun σ τ => overlapCovMatrix N ξ σ τ))
+    (M₀ : Fin 2 → J'' → ℝ) (M : Fin κ → Fin 2 → J'' → ℝ) (a : Fin N × Fin 2 → ℝ) (lam : ℝ)
+    (ns : Fin κ → ℝ) (hnsm : Monotone ns) (hpos : ∀ i, 0 < ns i) (hle : ∀ i, ns i ≤ 1) :
+    (1 / (N : ℝ)) * ∫ θ, Real.log (cascadeRec κ ns
+        (siteGaussianMarks (Fin N × (Fin 2 ⊕ J'')) κ fun p => couplingVar ξ ρ (p.val + 1))
+        (coupledG N u a (sumL (couplingFactorSgn η τ 0)) (sumR M₀)
+          (fun p => sumL (couplingFactorSgn η τ (p.val + 1))) (fun p => sumR (M p)) ξ G₀ 1
+          θ)).toReal ∂Pm.prod (rootMarksLaw N (couplingVar ξ ρ 0))
+      ≤ 2 * Real.log 2
+          + (1 / (N : ℝ)) * (∑ i, pairSiteY₀ ns (couplingVar ξ ρ 0) (fun p => couplingVar ξ ρ (p.val + 1)) lam (fun l => a (i, l))
+            (sumL (couplingFactorSgn η τ 0) + sumR M₀)
+            (fun p => sumL (couplingFactorSgn η τ (p.val + 1)) + sumR (M p)))
+          - lam * u - couplingLevelSum ξ ρ τ ns
+          + pairDiagDefect ξ u (fun l l' => couplingRhoSgn ρ η τ l l' (κ + 1)) := by
+  have hN' : (N : ℝ) ≠ 0 := by exact_mod_cast hN.ne'
+  have hρS : ∀ l l' r, couplingRhoSgn ρ η τ l l' r ∈ S := fun l l' r => by
+    unfold couplingRhoSgn
+    split_ifs
+    · exact hS r
+    · exact hS' _
+  have hb := coupled_bound'_of_monotone N hN ξ (couplingRhoSgn ρ η τ) u
+    (couplingRhoSgn_zero ρ hρ0 η τ) (S := S) hρS htan h0 G₀ (couplingVar ξ ρ 0)
+    (fun p => couplingVar ξ ρ (p.val + 1))
+    (J₁ := leftCols J'') (L₀ := sumL (couplingFactorSgn η τ 0)) (L₀' := sumR M₀)
+    (L := fun p => sumL (couplingFactorSgn η τ (p.val + 1))) (L' := fun p => sumR (M p))
+    (fun l l' => couplingVar_mul_gram hη2 hodd (hmono 0 (Nat.zero_le _)) l l')
+    (fun p l l' => couplingVar_mul_gram hη2 hodd (hmono (p.val + 1) (by omega)) l l')
+    (fun l j hj => sumL_of_not_mem_leftCols _ l hj)
+    (fun p l j hj => sumL_of_not_mem_leftCols _ l hj)
+    (fun l j hj => sumR_of_mem_leftCols _ l hj)
+    (fun p l j hj => sumR_of_mem_leftCols _ l hj)
+    a lam ns hnsm hpos hle hu
+  rw [integral_parisiRec_pairCoshF_siteField N ns hpos hle _ _ lam a _ _,
+    coupledLevelSum_couplingRhoSgn hθ ρ τ ns] at hb
+  convert hb using 1 <;> ring
+
+/-- The constant-site-field specialization. -/
 theorem coupled_bound_coupling (hN : 0 < N) (ξ : ℝ → ℝ) {S : Set ℝ}
     (htan : ∀ x ∈ Icc (-1 : ℝ) 1, ∀ q ∈ S, ξ q + (x - q) * deriv ξ q ≤ ξ x) (h0 : deriv ξ 0 = 0)
     (ρ : ℕ → ℝ) (hρ0 : ρ 0 = 0) (hmono : ∀ r, r ≤ κ → deriv ξ (ρ r) ≤ deriv ξ (ρ (r + 1)))
@@ -232,30 +276,13 @@ theorem coupled_bound_coupling (hN : 0 < N) (ξ : ℝ → ℝ) {S : Set ℝ}
             (fun p => sumL (couplingFactorSgn η τ (p.val + 1)) + sumR (M p))
           - lam * u - couplingLevelSum ξ ρ τ ns
           + pairDiagDefect ξ u (fun l l' => couplingRhoSgn ρ η τ l l' (κ + 1)) := by
-  have hN' : (N : ℝ) ≠ 0 := by exact_mod_cast hN.ne'
-  have hρS : ∀ l l' r, couplingRhoSgn ρ η τ l l' r ∈ S := fun l l' r => by
-    unfold couplingRhoSgn
-    split_ifs
-    · exact hS r
-    · exact hS' _
-  have hb := coupled_bound'_of_monotone N hN ξ (couplingRhoSgn ρ η τ) u
-    (couplingRhoSgn_zero ρ hρ0 η τ) (S := S) hρS htan h0 G₀ (couplingVar ξ ρ 0)
-    (fun p => couplingVar ξ ρ (p.val + 1))
-    (J₁ := leftCols J'') (L₀ := sumL (couplingFactorSgn η τ 0)) (L₀' := sumR M₀)
-    (L := fun p => sumL (couplingFactorSgn η τ (p.val + 1))) (L' := fun p => sumR (M p))
-    (fun l l' => couplingVar_mul_gram hη2 hodd (hmono 0 (Nat.zero_le _)) l l')
-    (fun p l l' => couplingVar_mul_gram hη2 hodd (hmono (p.val + 1) (by omega)) l l')
-    (fun l j hj => sumL_of_not_mem_leftCols _ l hj)
-    (fun p l j hj => sumL_of_not_mem_leftCols _ l hj)
-    (fun l j hj => sumR_of_mem_leftCols _ l hj)
-    (fun p l j hj => sumR_of_mem_leftCols _ l hj)
-    (fun s => h s.2) lam ns hnsm hpos hle hu
-  rw [integral_parisiRec_pairCoshF N ns hpos hle _ _ lam h _ _,
-    coupledLevelSum_couplingRhoSgn hθ ρ τ ns] at hb
-  refine hb.trans (le_of_eq ?_)
-  field_simp
+  have hb := coupled_bound_coupling_siteField N hN ξ htan h0 ρ hρ0 hmono hη2 hodd hθ hS hS'
+    τ u hu G₀ M₀ M (fun s => h s.2) lam ns hnsm hpos hle
+  simpa [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
+    ← mul_assoc, one_div, inv_mul_cancel₀ (show (N : ℝ) ≠ 0 by exact_mod_cast hN.ne')]
+    using hb
 
-/-- **Proposition 14.6.3 under Talagrand's normalization** `ρ_{κ+1} = 1`, `τ ≤ κ`, `u = η ρ_τ`:
+/-- Proposition 14.6.3 under Talagrand's normalization `ρ_{κ+1} = 1`, `τ ≤ κ`, `u = η ρ_τ`:
 the diagonal defect vanishes. -/
 theorem coupled_bound_coupling_of_top (hN : 0 < N) (ξ : ℝ → ℝ) {S : Set ℝ}
     (htan : ∀ x ∈ Icc (-1 : ℝ) 1, ∀ q ∈ S, ξ q + (x - q) * deriv ξ q ≤ ξ x) (h0 : deriv ξ 0 = 0)
@@ -377,13 +404,76 @@ lemma pairSiteY₀_sumL (ns : Fin κ → ℝ) (v₀ : ℝ≥0) (vs : Fin κ → 
   rw [integral_congr_ae (Filter.Eventually.of_forall hinner), ← hmap₀,
     integral_map hφm.aemeasurable hfm.aestronglyMeasurable]
 
-/-- **Proposition 14.6.3 without the extra field** (Talagrand's (14.149)): for the constrained
+/-- Proposition 14.6.3 without the extra field (Talagrand's (14.149)): for the constrained
 free energy `(1/N) 𝔼 log ∑_{R_{1,2}=u} e^{−H_N(σ¹) − H_N(σ²) − ∑ σ^ℓ_i h_ℓ}`,
 
 `(1/N) 𝔼 log ∑_{R_{1,2}=u} … ≤ 2 log 2 + Y₀(λ) − λu − 2 ∑_{p<τ} n_p (θ(ρ_{p+1}) − θ(ρ_p))
     − ∑_{τ ≤ p ≤ κ} n_p (θ(ρ_{p+1}) − θ(ρ_p)) + D`,
 
 with the one-site `Y₀(λ)` of the coupling on two columns. -/
+theorem coupled_bound_coupling_zero_siteField (hN : 0 < N) (ξ : ℝ → ℝ) {S : Set ℝ}
+    (htan : ∀ x ∈ Icc (-1 : ℝ) 1, ∀ q ∈ S, ξ q + (x - q) * deriv ξ q ≤ ξ x) (h0 : deriv ξ 0 = 0)
+    (ρ : ℕ → ℝ) (hρ0 : ρ 0 = 0) (hmono : ∀ r, r ≤ κ → deriv ξ (ρ r) ≤ deriv ξ (ρ (r + 1)))
+    {η : ℝ} (hη2 : η ^ 2 = 1) (hodd : ∀ x, deriv ξ (η * x) = η * deriv ξ x)
+    (hθ : ∀ x, parisiTheta ξ (η * x) = parisiTheta ξ x) (hS : ∀ r, ρ r ∈ S)
+    (hS' : ∀ r, η * ρ r ∈ S) (τ : ℕ) (u : ℝ)
+    (hu : ∃ σ : Fin 2 → Config N, overlap N (σ 0) (σ 1) = u)
+    (G₀ : GaussianField (α := Config N) Pm (fun σ τ => overlapCovMatrix N ξ σ τ))
+    (a : Fin N × Fin 2 → ℝ) (lam : ℝ) (ns : Fin κ → ℝ) (hnsm : Monotone ns) (hpos : ∀ i, 0 < ns i)
+    (hle : ∀ i, ns i ≤ 1) :
+    (1 / (N : ℝ)) * ∫ ω, Real.log (constrainedPairZ N u (G₀.U ω) a) ∂Pm
+      ≤ 2 * Real.log 2
+          + (1 / (N : ℝ)) * (∑ i, pairSiteY₀ (J := Fin 2) ns (couplingVar ξ ρ 0) (fun p => couplingVar ξ ρ (p.val + 1))
+            lam (fun l => a (i, l)) (couplingFactorSgn η τ 0)
+              (fun p => couplingFactorSgn η τ (p.val + 1)))
+          - lam * u - couplingLevelSum ξ ρ τ ns
+          + pairDiagDefect ξ u (fun l l' => couplingRhoSgn ρ η τ l l' (κ + 1)) := by
+  have hb := coupled_bound_coupling_siteField N hN ξ htan h0 ρ hρ0 hmono hη2 hodd hθ hS hS' τ u hu G₀
+    (J'' := PEmpty.{u + 1}) 0 0 a lam ns hnsm hpos hle
+  simp only [Pi.zero_apply, sumR_zero, add_zero] at hb
+  simp_rw [pairSiteY₀_sumL] at hb
+  -- the left-hand side: the branch functions are constant, and the recursion of a constant is
+  -- that constant
+  have hpt : ∀ θ : Ω × (Fin N × (Fin 2 ⊕ PEmpty.{u + 1}) → ℝ),
+      Real.log (cascadeRec κ ns
+        (siteGaussianMarks (Fin N × (Fin 2 ⊕ PEmpty.{u + 1})) κ
+          fun p => couplingVar ξ ρ (p.val + 1))
+        (coupledG N u a (sumL (couplingFactorSgn η τ 0)) 0
+          (fun p : Fin κ => sumL (couplingFactorSgn η τ (p.val + 1)))
+          (fun _ : Fin κ => (0 : Fin 2 → Fin 2 ⊕ PEmpty.{u + 1} → ℝ)) ξ G₀ 1 θ)).toReal
+      = Real.log (constrainedPairZ N u (G₀.U θ.1) a) := by
+    intro θ
+    have he : coupledG N u a (sumL (couplingFactorSgn η τ 0)) 0
+        (fun p : Fin κ => sumL (couplingFactorSgn η τ (p.val + 1)))
+        (fun _ : Fin κ => (0 : Fin 2 → Fin 2 ⊕ PEmpty.{u + 1} → ℝ)) ξ G₀ 1 θ
+        = fun _ => ENNReal.ofReal (constrainedPairZ N u (G₀.U θ.1) a) :=
+      funext fun x => coupledG_one_zero N u a (sumL (couplingFactorSgn η τ 0))
+        (fun p : Fin κ => sumL (couplingFactorSgn η τ (p.val + 1))) ξ G₀ θ x
+    rw [he, cascadeRec_const κ ns _ hpos, ENNReal.toReal_ofReal (constrainedPairZ_nonneg N u _ _)]
+  have hm : Measurable fun ω : Ω => Real.log (constrainedPairZ N u (G₀.U ω) a) := by
+    have h1 := (continuous_constrainedPairZ N u a).measurable.comp G₀.measU
+    have h2 := Real.measurable_log.comp h1
+    exact h2
+  have hmap : (Pm.prod (rootMarksLaw (J := Fin 2 ⊕ PEmpty.{u + 1}) N (couplingVar ξ ρ 0))).map
+      Prod.fst = Pm := by
+    rw [Measure.map_fst_prod, measure_univ, one_smul]
+  have hL : (∫ θ, Real.log (cascadeRec κ ns
+        (siteGaussianMarks (Fin N × (Fin 2 ⊕ PEmpty.{u + 1})) κ
+          fun p => couplingVar ξ ρ (p.val + 1))
+        (coupledG N u a (sumL (couplingFactorSgn η τ 0)) 0
+          (fun p : Fin κ => sumL (couplingFactorSgn η τ (p.val + 1)))
+          (fun _ : Fin κ => (0 : Fin 2 → Fin 2 ⊕ PEmpty.{u + 1} → ℝ)) ξ G₀ 1 θ)).toReal
+        ∂Pm.prod (rootMarksLaw N (couplingVar ξ ρ 0)))
+      = ∫ ω, Real.log (constrainedPairZ N u (G₀.U ω) a) ∂Pm := by
+    rw [integral_congr_ae (Filter.Eventually.of_forall hpt)]
+    have hi := integral_map (μ := Pm.prod (rootMarksLaw (J := Fin 2 ⊕ PEmpty.{u + 1}) N
+      (couplingVar ξ ρ 0))) measurable_fst.aemeasurable hm.aestronglyMeasurable
+    rw [hmap] at hi
+    exact hi.symm
+  rw [hL] at hb
+  exact hb
+
+/-- The constant-site-field specialization of the constrained bound. -/
 theorem coupled_bound_coupling_zero (hN : 0 < N) (ξ : ℝ → ℝ) {S : Set ℝ}
     (htan : ∀ x ∈ Icc (-1 : ℝ) 1, ∀ q ∈ S, ξ q + (x - q) * deriv ξ q ≤ ξ x) (h0 : deriv ξ 0 = 0)
     (ρ : ℕ → ℝ) (hρ0 : ρ 0 = 0) (hmono : ∀ r, r ≤ κ → deriv ξ (ρ r) ≤ deriv ξ (ρ (r + 1)))
@@ -400,50 +490,11 @@ theorem coupled_bound_coupling_zero (hN : 0 < N) (ξ : ℝ → ℝ) {S : Set ℝ
             lam h (couplingFactorSgn η τ 0) (fun p => couplingFactorSgn η τ (p.val + 1))
           - lam * u - couplingLevelSum ξ ρ τ ns
           + pairDiagDefect ξ u (fun l l' => couplingRhoSgn ρ η τ l l' (κ + 1)) := by
-  have hb := coupled_bound_coupling N hN ξ htan h0 ρ hρ0 hmono hη2 hodd hθ hS hS' τ u hu G₀
-    (J'' := PEmpty.{u + 1}) 0 0 h lam ns hnsm hpos hle
-  simp only [Pi.zero_apply, sumR_zero, add_zero] at hb
-  rw [pairSiteY₀_sumL] at hb
-  -- the left-hand side: the branch functions are constant, and the recursion of a constant is
-  -- that constant
-  have hpt : ∀ θ : Ω × (Fin N × (Fin 2 ⊕ PEmpty.{u + 1}) → ℝ),
-      Real.log (cascadeRec κ ns
-        (siteGaussianMarks (Fin N × (Fin 2 ⊕ PEmpty.{u + 1})) κ
-          fun p => couplingVar ξ ρ (p.val + 1))
-        (coupledG N u (fun s => h s.2) (sumL (couplingFactorSgn η τ 0)) 0
-          (fun p : Fin κ => sumL (couplingFactorSgn η τ (p.val + 1)))
-          (fun _ : Fin κ => (0 : Fin 2 → Fin 2 ⊕ PEmpty.{u + 1} → ℝ)) ξ G₀ 1 θ)).toReal
-      = Real.log (constrainedPairZ N u (G₀.U θ.1) (fun s => h s.2)) := by
-    intro θ
-    have he : coupledG N u (fun s => h s.2) (sumL (couplingFactorSgn η τ 0)) 0
-        (fun p : Fin κ => sumL (couplingFactorSgn η τ (p.val + 1)))
-        (fun _ : Fin κ => (0 : Fin 2 → Fin 2 ⊕ PEmpty.{u + 1} → ℝ)) ξ G₀ 1 θ
-        = fun _ => ENNReal.ofReal (constrainedPairZ N u (G₀.U θ.1) (fun s => h s.2)) :=
-      funext fun x => coupledG_one_zero N u (fun s => h s.2) (sumL (couplingFactorSgn η τ 0))
-        (fun p : Fin κ => sumL (couplingFactorSgn η τ (p.val + 1))) ξ G₀ θ x
-    rw [he, cascadeRec_const κ ns _ hpos, ENNReal.toReal_ofReal (constrainedPairZ_nonneg N u _ _)]
-  have hm : Measurable fun ω : Ω => Real.log (constrainedPairZ N u (G₀.U ω) (fun s => h s.2)) := by
-    have h1 := (continuous_constrainedPairZ N u (fun s => h s.2)).measurable.comp G₀.measU
-    have h2 := Real.measurable_log.comp h1
-    exact h2
-  have hmap : (Pm.prod (rootMarksLaw (J := Fin 2 ⊕ PEmpty.{u + 1}) N (couplingVar ξ ρ 0))).map
-      Prod.fst = Pm := by
-    rw [Measure.map_fst_prod, measure_univ, one_smul]
-  have hL : (∫ θ, Real.log (cascadeRec κ ns
-        (siteGaussianMarks (Fin N × (Fin 2 ⊕ PEmpty.{u + 1})) κ
-          fun p => couplingVar ξ ρ (p.val + 1))
-        (coupledG N u (fun s => h s.2) (sumL (couplingFactorSgn η τ 0)) 0
-          (fun p : Fin κ => sumL (couplingFactorSgn η τ (p.val + 1)))
-          (fun _ : Fin κ => (0 : Fin 2 → Fin 2 ⊕ PEmpty.{u + 1} → ℝ)) ξ G₀ 1 θ)).toReal
-        ∂Pm.prod (rootMarksLaw N (couplingVar ξ ρ 0)))
-      = ∫ ω, Real.log (constrainedPairZ N u (G₀.U ω) (fun s => h s.2)) ∂Pm := by
-    rw [integral_congr_ae (Filter.Eventually.of_forall hpt)]
-    have hi := integral_map (μ := Pm.prod (rootMarksLaw (J := Fin 2 ⊕ PEmpty.{u + 1}) N
-      (couplingVar ξ ρ 0))) measurable_fst.aemeasurable hm.aestronglyMeasurable
-    rw [hmap] at hi
-    exact hi.symm
-  rw [hL] at hb
-  exact hb
+  have hb := coupled_bound_coupling_zero_siteField N hN ξ htan h0 ρ hρ0 hmono hη2 hodd hθ
+    hS hS' τ u hu G₀ (fun s => h s.2) lam ns hnsm hpos hle
+  simpa [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
+    ← mul_assoc, one_div, inv_mul_cancel₀ (show (N : ℝ) ≠ 0 by exact_mod_cast hN.ne')]
+    using hb
 
 end
 

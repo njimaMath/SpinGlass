@@ -13,7 +13,7 @@ sample `w` of the cascade weights with total weight `W = ∑_α u*_α ∈ (0, �
 
 `p_N ≤ (1/N) 𝔼_z log (∑_α u*_α exp F(z_α) / ∑_α u*_α) + ∫₀¹ b_w(t) dt`,
 
-where `exp F(z_α) = ∏ᵢ 2 cosh (h + z_{i,0} + ∑ₚ z_{i,p,α})` and `b_w` is the bound `guerraBound`
+where `exp F(z_α) = ∏ᵢ 2 cosh (h i + z_{i,0} + ∑ₚ z_{i,p,α})` and `b_w` is the bound `guerraBound`
 for the whole cascade (`guerra_fixed_weights`). The truncated sums `∑_{α ∈ A_M}` increase to the
 cascade sums, so the `log` of the truncated partition function is bounded by the `log` of the
 full one (both integrable: they lie between the single term `u*_{α₀} ≥ c > 0` and the integrable
@@ -59,21 +59,21 @@ lemma lintegral_ofReal_exp_add_pi_gaussianReal (v₀ : ℝ≥0) (a : ℝ) (c : F
   rw [lintegral_const_mul _ hm]
   exact congrArg _ (lintegral_ofReal_exp_sum_mul_pi_gaussianReal (fun _ : Fin N => v₀) c)
 
-/-- `𝔼 exp F_{k+1} = 𝔼_{z₀} ∫ ∏ᵢ 2 cosh (h + z_{i,0} + ∑ₚ x_{i,p}) dμ^{⊗k}`. -/
-def coshConst (v₀ : ℝ≥0) (vs : Fin k → ℝ≥0) (h : ℝ) : ℝ≥0∞ :=
+/-- `𝔼 exp F_{k+1} = 𝔼_{z₀} ∫ ∏ᵢ 2 cosh (h i + z_{i,0} + ∑ₚ x_{i,p}) dμ^{⊗k}`. -/
+def coshConst (v₀ : ℝ≥0) (vs : Fin k → ℝ≥0) (h : Fin N → ℝ) : ℝ≥0∞ :=
   ∫⁻ z₀, ∫⁻ x, coshG N k h z₀ x ∂Measure.pi (gaussianMarks N k vs)
     ∂Measure.pi (fun _ : Fin N => gaussianReal 0 v₀)
 
 /-- Talagrand's hypothesis (14.4) for `F_{k+1}`: `𝔼 exp F_{k+1} < ∞`. -/
-lemma coshConst_ne_top (v₀ : ℝ≥0) (vs : Fin k → ℝ≥0) (h : ℝ) : coshConst N k v₀ vs h ≠ ∞ := by
+lemma coshConst_ne_top (v₀ : ℝ≥0) (vs : Fin k → ℝ≥0) (h : Fin N → ℝ) : coshConst N k v₀ vs h ≠ ∞ := by
   unfold coshConst
   have hin : ∀ z₀ : Fin N → ℝ, ∫⁻ x, coshG N k h z₀ x ∂Measure.pi (gaussianMarks N k vs)
-      = ∑ σ : Config N, ENNReal.ofReal (Real.exp (∑ i, (h + z₀ i) * isingSpin (σ i)))
+      = ∑ σ : Config N, ENNReal.ofReal (Real.exp (∑ i, (h i + z₀ i) * isingSpin (σ i)))
         * ENNReal.ofReal (Real.exp (∑ p, ∑ i, (vs p : ℝ) * isingSpin (σ i) ^ 2 / 2)) := by
     intro z₀
     simp_rw [coshG_eq_sum]
     have hm : ∀ σ : Config N, Measurable fun x : Fin k → Fin N → ℝ =>
-        ENNReal.ofReal (Real.exp ((∑ i, (h + z₀ i) * isingSpin (σ i))
+        ENNReal.ofReal (Real.exp ((∑ i, (h i + z₀ i) * isingSpin (σ i))
           + ∑ p, ∑ i, isingSpin (σ i) * x p i)) := fun σ =>
       ENNReal.measurable_ofReal.comp (Real.measurable_exp.comp (measurable_const.add
         (Finset.measurable_sum _ fun p _ => Finset.measurable_sum _ fun i _ => measurable_const.mul
@@ -82,20 +82,20 @@ lemma coshConst_ne_top (v₀ : ℝ≥0) (vs : Fin k → ℝ≥0) (h : ℝ) : cos
     exact Finset.sum_congr rfl fun σ _ => lintegral_ofReal_exp_add_gaussianMarks N k vs _ _
   simp_rw [hin]
   have hm' : ∀ σ : Config N, Measurable fun z₀ : Fin N → ℝ =>
-      ENNReal.ofReal (Real.exp (∑ i, (h + z₀ i) * isingSpin (σ i)))
+      ENNReal.ofReal (Real.exp (∑ i, (h i + z₀ i) * isingSpin (σ i)))
         * ENNReal.ofReal (Real.exp (∑ p, ∑ i, (vs p : ℝ) * isingSpin (σ i) ^ 2 / 2)) := fun σ =>
     (ENNReal.measurable_ofReal.comp (Real.measurable_exp.comp (Finset.measurable_sum _ fun i _ =>
       (measurable_const.add (measurable_pi_apply i)).mul measurable_const))).mul measurable_const
   rw [lintegral_finsetSum _ fun σ _ => hm' σ]
   refine ENNReal.sum_ne_top.2 fun σ _ => ?_
   have hmz : Measurable fun z₀ : Fin N → ℝ =>
-      ENNReal.ofReal (Real.exp (∑ i, (h + z₀ i) * isingSpin (σ i))) :=
+      ENNReal.ofReal (Real.exp (∑ i, (h i + z₀ i) * isingSpin (σ i))) :=
     ENNReal.measurable_ofReal.comp (Real.measurable_exp.comp
       (Finset.measurable_sum _ fun i _ => (measurable_const.add (measurable_pi_apply i)).mul
         measurable_const))
   rw [lintegral_mul_const _ hmz]
-  have hsplit : ∀ z₀ : Fin N → ℝ, ∑ i, (h + z₀ i) * isingSpin (σ i)
-      = (∑ i, h * isingSpin (σ i)) + ∑ i, isingSpin (σ i) * z₀ i := by
+  have hsplit : ∀ z₀ : Fin N → ℝ, ∑ i, (h i + z₀ i) * isingSpin (σ i)
+      = (∑ i, h i * isingSpin (σ i)) + ∑ i, isingSpin (σ i) * z₀ i := by
     intro z₀
     simp_rw [add_mul, Finset.sum_add_distrib, mul_comm (z₀ _)]
   simp_rw [hsplit]
@@ -103,14 +103,14 @@ lemma coshConst_ne_top (v₀ : ℝ≥0) (vs : Fin k → ℝ≥0) (h : ℝ) : cos
   exact ENNReal.mul_ne_top (ENNReal.mul_ne_top ENNReal.ofReal_ne_top ENNReal.ofReal_ne_top)
     ENNReal.ofReal_ne_top
 
-lemma measurable_uncurry_coshG (h : ℝ) :
+lemma measurable_uncurry_coshG (h : Fin N → ℝ) :
     Measurable (Function.uncurry fun z₀ : Fin N → ℝ => coshG N k h z₀) := by
   have := measurable_coshG N k h
   unfold Function.uncurry
   exact this
 
 /-- Measurability of the cascade sum of `exp F_{k+1}` in the marks. -/
-lemma measurable_cascadeSum_coshG (h : ℝ) (w : CascadeWeights k) :
+lemma measurable_cascadeSum_coshG (h : Fin N → ℝ) (w : CascadeWeights k) :
     Measurable fun z : MarksSpace N k => cascadeSum k (coshG N k h z.1) (cascadeZip k (w, z.2)) := by
   have h1 := measurable_cascadeSum_prod k (measurable_uncurry_coshG N k h)
   have hm : Measurable fun z : MarksSpace N k => (z.1, cascadeZip k (w, z.2)) :=
@@ -119,8 +119,8 @@ lemma measurable_cascadeSum_coshG (h : ℝ) (w : CascadeWeights k) :
   simp only [Function.comp_def] at this
   exact this
 
-/-- **The marks average of the cascade sum of `exp F_{k+1}` at fixed weights**: `W · 𝔼 exp F_{k+1}`. -/
-lemma lintegral_cascadeSum_coshG (v₀ : ℝ≥0) (vs : Fin k → ℝ≥0) (h : ℝ) (w : CascadeWeights k) :
+/-- The marks average of the cascade sum of `exp F_{k+1}` at fixed weights: `W · 𝔼 exp F_{k+1}`. -/
+lemma lintegral_cascadeSum_coshG (v₀ : ℝ≥0) (vs : Fin k → ℝ≥0) (h : Fin N → ℝ) (w : CascadeWeights k) :
     ∫⁻ z, cascadeSum k (coshG N k h z.1) (cascadeZip k (w, z.2)) ∂marksLaw N k v₀ vs
       = weightSum k w * coshConst N k v₀ vs h := by
   unfold marksLaw coshConst
@@ -139,19 +139,19 @@ lemma lintegral_cascadeSum_coshG (v₀ : ℝ≥0) (vs : Fin k → ℝ≥0) (h : 
 
 /-! ### The truncated cascade sums -/
 
-lemma one_le_coshG (h : ℝ) (z₀ : Fin N → ℝ) (x : Fin k → Fin N → ℝ) : 1 ≤ coshG N k h z₀ x := by
+lemma one_le_coshG (h : Fin N → ℝ) (z₀ : Fin N → ℝ) (x : Fin k → Fin N → ℝ) : 1 ≤ coshG N k h z₀ x := by
   rw [coshG_eq]
   refine ENNReal.one_le_ofReal.2 ?_
   calc (1 : ℝ) = ∏ _i : Fin N, (1 : ℝ) := by simp
-    _ ≤ ∏ i, (2 * Real.cosh (h + z₀ i + ∑ p, x p i)) :=
+    _ ≤ ∏ i, (2 * Real.cosh (h i + z₀ i + ∑ p, x p i)) :=
       Finset.prod_le_prod (fun _ _ => zero_le_one) fun i _ =>
         one_le_two.trans (le_mul_of_one_le_right two_pos.le (Real.one_le_cosh _))
 
 /-- The truncated partition function of the Ising site factorization is the truncated cascade sum
 of `exp F_{k+1}`. -/
 lemma sum_truncWt_mul_prod_eq (M : ℕ) (w : CascadeWeights k) (hw : ∀ α, branchWeight k w α ≠ ∞)
-    (h : ℝ) (z : MarksSpace N k) :
-    ∑ α, truncWt k M w α * ∏ i, (2 * Real.cosh (h + treeMark N k M z α i))
+    (h : Fin N → ℝ) (z : MarksSpace N k) :
+    ∑ α, truncWt k M w α * ∏ i, (2 * Real.cosh (h i + treeMark N k M z α i))
       = (truncSum k M w (coshG N k h z.1) z.2).toReal := by
   unfold truncSum
   rw [ENNReal.toReal_sum fun α _ => ENNReal.mul_ne_top (hw _) (by rw [coshG]; exact ENNReal.ofReal_ne_top)]
@@ -169,17 +169,17 @@ lemma abs_log_le_add_abs_log {c x : ℝ} (hc : 0 < c) (hcx : c ≤ x) : |Real.lo
 
 /-! ### The interpolation at fixed weights -/
 
-/-- **Guerra's interpolation for the whole cascade, at fixed weights of positive finite total
-mass** (Talagrand Vol. II, Lemma 14.4.1 with (14.79)–(14.80), integrated over `t`, for the
+/-- Guerra's interpolation for the whole cascade, at fixed weights of positive finite total
+mass (Talagrand Vol. II, Lemma 14.4.1 with (14.79)–(14.80), integrated over `t`, for the
 cascade weights `u*_α` and the marks `z`):
-`p_N ≤ (1/N) 𝔼_z log (∑_α u*_α ∏ᵢ 2cosh(h + z_{i,0} + ∑ₚ z_{i,p,α}) / ∑_α u*_α) + ∫₀¹ b_w(t) dt`. -/
+`p_N ≤ (1/N) 𝔼_z log (∑_α u*_α ∏ᵢ 2cosh(h i + z_{i,0} + ∑ₚ z_{i,p,α}) / ∑_α u*_α) + ∫₀¹ b_w(t) dt`. -/
 theorem guerra_fixed_weights (hN : 0 < N) (ξ : ℝ → ℝ) (hS : (overlapCovMatrix N ξ).PosSemidef)
     (qs : Fin (k + 1) → ℝ) (h0 : deriv ξ 0 = 0)
     (hmono : ∀ r, r ≤ k + 1 → deriv ξ (qExt qs r) ≤ deriv ξ (qExt qs (r + 1)))
     (hq01 : ∀ r, qExt qs r ∈ Set.Icc (0 : ℝ) 1)
     (htan : ∀ x ∈ Set.Icc (-1 : ℝ) 1, ∀ q ∈ Set.Icc (0 : ℝ) 1, ξ q + (x - q) * deriv ξ q ≤ ξ x)
-    (h : ℝ) (w : CascadeWeights k) (hW0 : weightSum k w ≠ 0) (hW : weightSum k w ≠ ∞) :
-    mixedPSpinFreeEnergy N ξ h
+    (h : Fin N → ℝ) (w : CascadeWeights k) (hW0 : weightSum k w ≠ 0) (hW : weightSum k w ≠ ∞) :
+    siteFieldMixedPSpinFreeEnergy N ξ h
       ≤ (1 / (N : ℝ)) * (∫ z, Real.log ((cascadeSum k (coshG N k h z.1) (cascadeZip k (w, z.2))).toReal
             / (cascadeSum k (fun _ => 1) (cascadeZip k (w, z.2))).toReal)
           ∂marksLaw N k (parisiVar ξ qs 0) fun p => parisiVar ξ qs (p.val + 1))
@@ -261,7 +261,7 @@ theorem guerra_fixed_weights (hN : 0 < N) (ξ : ℝ → ℝ) (hS : (overlapCovMa
     exact mul_le_mul_of_nonneg_left (Real.log_le_log (hc.trans_le (hcSM M hM z hz)) (hSMS M z hz))
       (by positivity)
   -- the truncated bound (★) for `M ≥ M₀`
-  have hstar : ∀ M, M₀ ≤ M → mixedPSpinFreeEnergy N ξ h
+  have hstar : ∀ M, M₀ ≤ M → siteFieldMixedPSpinFreeEnergy N ξ h
       ≤ (∫ z, (1 / (N : ℝ)) * Real.log (S z) ∂Pm)
         - (1 / (N : ℝ)) * Real.log (∑ α, truncWt k M w α)
         + ∫ t in (0 : ℝ)..1, guerraTruncBound N k M ξ qs h w t := by
@@ -269,7 +269,7 @@ theorem guerra_fixed_weights (hN : 0 < N) (ξ : ℝ → ℝ) (hS : (overlapCovMa
     have hne := truncWt_ne_zero_of_mem k w hW hα₀ (hM₀ M hM)
     have h1 := guerra_truncated (N := N) (k := k) (M := M) hN ξ hS qs h0 hmono hq01 htan h w hne
     have h2 : (∫ z, (1 / (N : ℝ)) * Real.log (∑ α, truncWt k M w α
-        * ∏ i, (2 * Real.cosh (h + treeMark N k M z α i))) ∂Pm)
+        * ∏ i, (2 * Real.cosh (h i + treeMark N k M z α i))) ∂Pm)
         = ∫ z, (1 / (N : ℝ)) * Real.log (SM M z) ∂Pm := by
       refine integral_congr_ae (Filter.Eventually.of_forall fun z => ?_)
       beta_reduce
@@ -287,7 +287,7 @@ theorem guerra_fixed_weights (hN : 0 < N) (ξ : ℝ → ℝ) (hS : (overlapCovMa
       (𝓝 ((∫ z, (1 / (N : ℝ)) * Real.log (S z) ∂Pm) - (1 / (N : ℝ)) * Real.log W
         + ∫ t in (0 : ℝ)..1, guerraBound N k ξ qs h w t)) :=
     (tendsto_const_nhds.sub hlimW).add hlimB
-  have hle : mixedPSpinFreeEnergy N ξ h ≤ (∫ z, (1 / (N : ℝ)) * Real.log (S z) ∂Pm)
+  have hle : siteFieldMixedPSpinFreeEnergy N ξ h ≤ (∫ z, (1 / (N : ℝ)) * Real.log (S z) ∂Pm)
       - (1 / (N : ℝ)) * Real.log W + ∫ t in (0 : ℝ)..1, guerraBound N k ξ qs h w t :=
     ge_of_tendsto hlim (Filter.eventually_atTop.2 ⟨M₀, hstar⟩)
   -- identification of the first two terms
