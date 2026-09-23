@@ -44,3 +44,14 @@ Scratch/
 *.synctex.gz
 *.synctex.gz(busy)
 *.pdfsync
+
+
+## metafiles
+lakefile.toml
+lake-manifest.json
+lake-toolchain
+.gitignore
+
+tmp/*
+
+AGENTS.md

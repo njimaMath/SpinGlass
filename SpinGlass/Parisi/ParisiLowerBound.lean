@@ -72,7 +72,7 @@ theorem eventually_randomFieldParisiInf_sub_le_iidFieldMixedPSpinFreeEnergy
     have ha : 0 < a := by dsimp [a]; positivity
     have hconst : NondegenerateExternalFieldLaw (Measure.dirac a) := by
       constructor
-      · simp
+      · exact integrable_dirac (a := a) (f := fun h : ℝ => h ^ 2) (by simp)
       · simpa only [integral_dirac] using sq_pos_of_pos ha
     have hevent :=
       eventually_randomFieldParisiInf_sub_le_iidFieldMixedPSpinFreeEnergy_of_nondegenerate

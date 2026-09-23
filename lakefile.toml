@@ -1,6 +1,12 @@
 name = "SpinGlass"
 defaultTargets = ["SpinGlass", "Common"]
 
+# Keep this project's dependencies and build output under the parent
+# workspace's `.lake` directory while isolating Lean/mathlib 4.34 from the
+# root project's Lean/mathlib 4.32 environment.
+packagesDir = "../.lake/spinglass/packages"
+buildDir = "../.lake/spinglass/build"
+
 [leanOptions]
 pp.unicode.fun = true
 autoImplicit = false
@@ -8,15 +14,14 @@ relaxedAutoImplicit = false
 weak.linter.mathlibStandardSet = true
 weak.linter.style.header = false
 
+# This is a Git worktree of the already-present root mathlib repository.  It
+# shares Git objects with `.lake/packages/mathlib` and requires no second clone.
 [[require]]
 name = "mathlib"
-git = "https://github.com/leanprover-community/mathlib4.git"
-rev = "v4.34.0-rc2"
+path = "../.lake/spinglass/packages/mathlib"
 
-# Exchangeability, the Hewitt-Savage zero-one law and de Finetti's theorem (Dynkin form, with
-# uniqueness over a standard Borel space) are absent from Mathlib and proved on this branch.
-# They are the ancestors of Aldous-Hoover and Dovbysh-Sudakov, which Talagrand Vol. II Ch. 12-15
-# needs. Only that layer is used here; the DLR/specification half of the repo is not imported.
+# Exchangeability, the Hewitt-Savage zero-one law and de Finetti's theorem
+# used by the overlap-array development.
 [[require]]
 name = "GibbsMeasure"
 git = "https://github.com/matteo-ax/GibbsMeasure.git"
