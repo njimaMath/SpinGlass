@@ -240,8 +240,9 @@ theorem integral_le_coleHopf_of_nonneg_mass_local {A : ℝ → ℝ}
     (∫ z, A (x + z) ∂gaussianReal 0 v) ≤ coleHopf m v A x := by
   rcases eq_or_lt_of_le hm with he | hp
   · subst m; rw [coleHopf_zero]
-  · have hAi := (hA.toHasExpGrowth.comp_add_const x).integrable_gaussianReal
-      (hAm.comp (measurable_const.add measurable_id)).aestronglyMeasurable
+  · have hAi : Integrable (fun z => A (x + z)) (gaussianReal 0 v) :=
+      (hA.toHasExpGrowth.comp_add_const x).integrable_gaussianReal
+        (hAm.comp (measurable_const.add measurable_id)).aestronglyMeasurable
     have hlog : Integrable (fun z => Real.log (Real.exp (m * A (x + z))))
         (gaussianReal 0 v) := by simpa only [Real.log_exp] using hAi.const_mul m
     have h := integral_log_le_log_integral
@@ -302,15 +303,17 @@ theorem continuousOn_coleHopfIterate_parameters_local
   have hmass : Tendsto
       (fun p => |coleHopfIterate k (ms p) (vs p₀) G x -
         coleHopfIterate k (ms p₀) (vs p₀) G x|) (𝓝[s] p₀) (𝓝 0) := by
-    simpa only [sub_self, abs_zero] using
-      (hf.sub continuousWithinAt_const).abs.tendsto
+    simpa only [Function.comp_apply, Pi.sub_apply, sub_self, abs_zero] using
+      (hf.sub (continuousWithinAt_const (b :=
+        coleHopfIterate k (ms p₀) (vs p₀) G x))).abs.tendsto
   have hmod (i : Fin k) : Tendsto
       (fun p => coleHopfModulus 1 L (Real.toNNReal |(vs p i : ℝ) - (vs p₀ i : ℝ)|))
       (𝓝[s] p₀) (𝓝 0) := by
     have hv := ((NNReal.continuous_coe.comp (continuous_apply i)).comp_continuousOn hvc)
       p₀ hp₀
     have he : Tendsto (fun p => |(vs p i : ℝ) - (vs p₀ i : ℝ)|) (𝓝[s] p₀) (𝓝 0) := by
-      simpa only [sub_self, abs_zero] using (hv.sub continuousWithinAt_const).abs.tendsto
+      simpa only [Function.comp_apply, Pi.sub_apply, sub_self, abs_zero] using
+        (hv.sub (continuousWithinAt_const (b := (vs p₀ i : ℝ)))).abs.tendsto
     exact (tendsto_coleHopfModulus 1 L).comp he
   have hsum := tendsto_finsetSum Finset.univ (fun i _ => hmod i)
   simp only [Finset.sum_const_zero] at hsum
@@ -323,10 +326,18 @@ theorem continuousOn_coleHopfIterate_parameters_local
       (Real.toNNReal |(vs p i : ℝ) - (vs p₀ i : ℝ)|)) ≤
       ∑ i, coleHopfModulus 1 L (Real.toNNReal |(vs p i : ℝ) - (vs p₀ i : ℝ)|) :=
     Finset.sum_le_sum fun i _ => coleHopfModulus_le_mass_one_local (hm p hp i) _
+  simp only [Real.toNNReal_abs] at hv hu
   calc
     _ ≤ |coleHopfIterate k (ms p) (vs p) G x - coleHopfIterate k (ms p) (vs p₀) G x| +
         |coleHopfIterate k (ms p) (vs p₀) G x - coleHopfIterate k (ms p₀) (vs p₀) G x| :=
       abs_sub_le _ _ _
-    _ ≤ _ := by linarith [hv.trans hu]
+    _ ≤ _ := by
+      calc
+        _ ≤ (∑ i, coleHopfModulus 1 L
+            (Real.nnabs ((vs p i : ℝ) - (vs p₀ i : ℝ)))) +
+            |coleHopfIterate k (ms p) (vs p₀) G x -
+              coleHopfIterate k (ms p₀) (vs p₀) G x| :=
+          add_le_add_left (hv.trans hu) _
+        _ = _ := add_comm _ _
 
 end SpinGlass
