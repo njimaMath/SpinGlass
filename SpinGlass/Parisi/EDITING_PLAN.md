@@ -12,6 +12,22 @@ in `SpinGlass/Parisi/ParisiLowerBound.lean`, without strengthening its assumptio
 
 This plan is intentionally written as an execution plan for a single long coding pass. The order below is topological: later phases should not be started by inserting placeholders for earlier phases.
 
+Current status: Phase 1 is implemented in `ParisiFullMin.lean`. Phase 2A has
+both split constructors and their endpoint and matching-mass identities in
+`ParisiMVariation.lean`. The mass-derivative part of Phase 2 and Phases 3–9
+remain to be completed. The nondegenerate
+theorem in `ParisiLowerBound.lean` still contains its proof hole.
+
+The first implementation step after the split identities is now in
+`ParisiMVariation.lean`: `splitParisiOverlap_mem_domain`,
+`splitParisiMassLeft_mem_domain`, and `splitParisiLeft_mem_parameterDomain`
+show that a left split with both new coordinates between their old neighbors
+is a legal closed-domain competitor. The next step is to prove a global-infimum
+lower bound for the closed functional at every admissible split, then combine
+it with `exists_randomFieldParisiMIN` to obtain the quantitative
+near-minimality inequality for the split functional. Only after that should
+the inserted-mass derivative and Talagrand's `f(u)` be formalized.
+
 ## Phase 0 — Baseline and guardrails
 
 ### Read first
@@ -22,6 +38,8 @@ Read, in this order:
 - `ARCHITECTURE.md`
 - `SpinGlass/Parisi/ParisiLowerBound.lean`
 - `SpinGlass/Parisi/ParisiMin.lean`
+- `SpinGlass/Parisi/ParisiFullMin.lean`
+- `SpinGlass/Parisi/ParisiMVariation.lean`
 - `SpinGlass/Parisi/ParisiQDeriv.lean`
 - `SpinGlass/Parisi/CoupledProp.lean`
 - `SpinGlass/Parisi/CoupledLambdaZero.lean`
@@ -54,106 +72,21 @@ The repo already contains most cascade, coupled interpolation, Gaussian concentr
 
 ---
 
-## Phase 1 — MIN parameters: full Lemma 14.5.5
+## Phase 1 — MIN parameters: full Lemma 14.5.5 (implemented)
 
-### Objective
+`ParisiFullMin.lean` defines compact `parisiMassDomain` and
+`parisiParameterDomain`, and the Cole–Hopf extension
+`closedRandomFieldParisiFunctional` at zero masses. Its joint-continuity and
+compact-minimization theorems attain a minimum at fixed level count. The
+level-reduction theorems remove repeated or endpoint masses and repeated
+overlaps while preserving value and full fixed-level minimality.
 
-Upgrade the current “near-infimum admissible parameters exist” result in `ParisiMin.lean` to the full content of Talagrand's Definition 14.5.3 + Lemma 14.5.5: near-global-optimality **and** exact finite-dimensional minimality, followed by deletion of redundant levels to obtain strict admissibility.
+`exists_randomFieldParisiMIN` provides strict admissible mass and overlap
+lists, value below `randomFieldParisiInf μh ξ + ε`,
+`IsRandomFieldParisiQMinimizer`, and an `IsMinOn` witness over the closed
+parameter domain. Use that last witness for the mass variations below.
 
-Talagrand's MIN conditions are:
-
-```text
-0 < m₁ < ... < m_k < 1,
-0 ≤ q₁ < q₂ < ... < q_k < q_{k+1} ≤ 1,
-P_k(m,q) ≤ P + ε,
-P_k(m,q) is minimal among the closed k-level parameter domain.
-```
-
-### 1A. Closed parameter domains
-
-Introduce/identify compact domains for fixed `k`.
-
-Suggested shape:
-
-```lean
-def ParisiMClosed {k : ℕ} (ms : Fin k → ℝ) : Prop :=
-  Monotone ms ∧ (∀ i, 0 ≤ ms i) ∧ ∀ i, ms i ≤ 1
-
-def ParisiQClosed {k : ℕ} (qs : Fin (k + 1) → ℝ) : Prop :=
-  Monotone qs ∧ 0 ≤ qs 0 ∧ qs (Fin.last k) ≤ 1
-```
-
-Do not duplicate an existing equivalent definition if one already exists.
-
-Prove the fixed-dimensional set is compact. The easiest Lean route should use finite products / `Set.Icc` and closedness of monotonicity inequalities.
-
-### 1B. Joint continuity on the closed domain
-
-Current code documents continuity in the exponents and fixed-q continuity, but MIN needs enough **joint** continuity to attain a minimum over all `m,q` for fixed `k`.
-
-Prove a theorem of the form:
-
-```lean
-ContinuousOn
-  (fun p : (Fin k → ℝ) × (Fin (k+1) → ℝ) =>
-     randomFieldParisiFunctional μh ξ p.1 p.2)
-  closedParisiParameterSet
-```
-
-or an equivalent sequential/compact formulation.
-
-Be careful at mass `m = 0`: the recursion must use the repository's already established continuous extension, not division by zero.
-
-### 1C. Attainment of fixed-k minimum
-
-From compactness + continuity, prove existence of `(ms*, qs*)` minimizing the functional over the closed domain.
-
-Then combine with `exists_randomFieldParisiFunctional_lt_inf_add_of_talagrand`:
-
-- first choose some strict admissible k-level parameters with value `< inf + ε`;
-- minimize over the **same fixed `k`** closed domain;
-- the minimum is no larger than the chosen value, hence still `< inf + ε`.
-
-This exactly matches the book's proof strategy.
-
-### 1D. Deletion / normalization lemmas
-
-Formalize the semantic invariances used to remove redundant parameters.
-
-Needed cases:
-
-- if a mass equals `1` at the end, delete the redundant last mass/overlap level;
-- if first mass equals `0`, delete first mass and matching q-level;
-- if two consecutive masses are equal, merge/delete the redundant level;
-- if two consecutive q-values are equal, delete one q and matching mass;
-- preserve the value of `randomFieldParisiFunctional` under each deletion.
-
-Use explicit `Fin` reindexing helpers and prove equality of the recursion/functionals. Avoid giant `simp` proofs that obscure which coordinate is deleted.
-
-### 1E. Package MIN
-
-Define a reusable proposition, unless an equivalent already exists, e.g.
-
-```lean
-structure RandomFieldParisiMIN
-    (μh : Measure ℝ) (ξ : ℝ → ℝ) {ε : ℝ} where
-  k : ℕ
-  ms : Fin k → ℝ
-  qs : Fin (k + 1) → ℝ
-  hm : ParisiMAdmissible ms
-  hq : ParisiQAdmissible qs
-  nearInf : randomFieldParisiFunctional μh ξ ms qs ≤ randomFieldParisiInf μh ξ + ε
-  qMin : IsRandomFieldParisiQMinimizer μh ξ ms qs
-  fullMin : ... -- no admissible closed-domain (m,q) lowers the value
-```
-
-If a structure creates too much refactoring, use a theorem returning a tuple of named hypotheses. The important part is to avoid passing 15 unrelated hypotheses by hand through every main-estimate lemma.
-
-### Exit criterion
-
-Have a theorem corresponding to Lemma 14.5.5 that directly supplies strict `m`, strict `q`, near-infimum value, and finite-dimensional minimality.
-
-Compile `ParisiMin.lean` before proceeding.
+Validation: `lake build SpinGlass.Parisi.ParisiFullMin` passes.
 
 ---
 
@@ -161,21 +94,28 @@ Compile `ParisiMin.lean` before proceeding.
 
 ### Objective
 
-The q-derivative layer is already substantially formalized in `ParisiQDeriv.lean`, including the concrete random-field version of Proposition 14.7.5. The missing work is the **mass/splitting variation package** that produces Talagrand's `Φ(m,u)`, `U(v)`, `f(u)` and the quantitative estimates needed by §§14.8–14.10.
-
-Create `SpinGlass/Parisi/ParisiMVariation.lean` unless these lemmas fit naturally at the end of `ParisiQDeriv.lean`.
+The q-derivative layer is already substantially formalized in `ParisiQDeriv.lean`, including the concrete random-field version of Proposition 14.7.5. `ParisiMVariation.lean` has the first split identities. The remaining work is the mass variation calculus producing Talagrand's `Φ(m,u)`, `U(v)`, `f(u)` and the quantitative estimates needed by §§14.8–14.10.
 
 ### 2A. Split one q interval
 
-For fixed `r`, define the operation that inserts a new overlap `u` into `[q_{r-1},q_r]` (and the mirror insertion into `[q_r,q_{r+1}]`) together with a free inserted mass `m`.
+`splitParisiMassLeft`, `splitParisiMassRight`, and `splitParisiOverlap` insert
+the mass and overlap using `Fin.insertNth`. The left-endpoint identity for the
+left split holds for any inserted mass. The right-endpoint identity for the
+mirror split holds for any inserted mass on a nonterminal interval.
+`closedRandomFieldParisiFunctional_split_matching_mass` proves equality with
+the original functional for every `u` in the interval at the matching mass;
+`closedRandomFieldParisiFunctional_split_right_matching_mass` is the mirror
+version. The remaining endpoint identities follow from these, including
+`closedRandomFieldParisiFunctional_split_right_endpoint_any_mass` and
+`closedRandomFieldParisiFunctional_split_right_left_endpoint`. These theorems
+use the closed functional because equal masses are allowed there.
 
-The definition should be a reusable reindexing operation on `Fin`, not a one-off list manipulation inside a proof.
-
-Prove endpoint simplifications:
-
-- at `u = q_r`, the inserted interval disappears;
-- for `r ≥ 2`, at `u = q_{r-1}`, the other inserted interval disappears;
-- at matching masses, the split functional reduces to the original functional.
+The left split now has explicit closed-domain membership lemmas for its mass,
+overlap, and parameter pair. Next, connect its closed functional to the global
+infimum and expose the inserted-mass dependence for differentiation. Keep the
+reusable `Fin` reindexing outside later case proofs. The mirror constructor
+currently covers nonterminal intervals; the terminal interval retains its
+fixed endpoint mass `1`.
 
 These identities are used repeatedly in Talagrand's (14.251).
 
@@ -651,7 +591,8 @@ Run in this order:
 
 ```bash
 lake env lean SpinGlass/Parisi/ParisiMin.lean
-lake env lean SpinGlass/Parisi/ParisiMVariation.lean            # if created
+lake build SpinGlass.Parisi.ParisiFullMin
+lake build SpinGlass.Parisi.ParisiMVariation
 lake env lean SpinGlass/Parisi/ParisiMainEstimate.lean
 lake env lean SpinGlass/Parisi/ParisiConcentration.lean
 lake env lean SpinGlass/Parisi/ParisiLocalization.lean
@@ -672,16 +613,14 @@ Review every hit in the new dependency cone.
 
 ## Expected hard points and fallback strategy
 
-### Hard point: joint continuity in MIN
+### Hard point: mass variation after the split identities
 
-If direct joint continuity of the whole functional is painful, use finite composition:
-
-- each Gaussian variance depends continuously on q;
-- each Cole–Hopf level is jointly continuous in exponent and variance on the compact domain, with the m=0 extension already handled;
-- finite iteration preserves continuity;
-- integrate against μh using a uniform linear/quadratic domination coming from log-cosh bounds and the finite moment available from `NondegenerateExternalFieldLaw`.
-
-Do not evade compact minimization by selecting an approximate q-minimizer only; later mass variations need exact minimality.
+`ParisiMVariation.lean` already supplies both split insertions and their
+endpoint and matching-mass equalities for the closed functional. The next calculus must
+differentiate in the inserted mass for both orientations and relate
+the resulting derivative to the concrete q-stationarity moment. Use the full
+closed-domain minimum from `exists_randomFieldParisiMIN` for endpoint mass
+variations; an approximate q-minimizer alone does not give that conclusion.
 
 ### Hard point: random external field in concentration
 

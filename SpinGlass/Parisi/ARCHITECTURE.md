@@ -91,15 +91,12 @@ TalagrandXiCondition / model covariance / i.i.d. site field
         │                                                         │
         └─────────────── lower-bound branch ───────────────────────┤
                   │                                               │
-                  ├─ ParisiMin (partial MIN only)                 │
-                  │      │                                        │
-                  │      └─ [missing: compact minimization +      │
-                  │          redundant-level removal]             │
+                  ├─ ParisiMin → ParisiFullMin (full MIN)         │
                   │                                               │
                   ├─ ParisiQDeriv ── q-stationarity / 14.7.5      │
                   │      │                                        │
-                  │      └─ [missing: mass/split variation,       │
-                  │          U/f estimates, 14.283]               │
+                  │      └─ ParisiMVariation (split identities;   │
+                  │          U/f estimates and 14.283 missing)     │
                   │                                               │
                   ├─ Coupled* stack ── §14.6 complete core        │
                   │      │                                        │
@@ -246,7 +243,7 @@ Important architectural fact: the lower-bound target should not be proved by man
 
 ---
 
-## MIN layer — partially complete
+## MIN layer — complete for fixed-level minimization
 
 ### `SpinGlass/Parisi/ParisiMin.lean`
 
@@ -269,7 +266,7 @@ The closed-overlap portion is also available through:
 
 These establish joint overlap continuity, closed overlap minimization for fixed masses, and deletion of repeated overlaps without changing the functional. Fixed-q mass continuity is available in `continuousOn_parisiFunctional`.
 
-### What is missing for Talagrand MIN
+### `SpinGlass/Parisi/ParisiFullMin.lean`
 
 Talagrand Definition 14.5.3 requires both:
 
@@ -278,21 +275,17 @@ P_k(m,q) ≤ P + ε             (14.105)
 P_k(m,q) is a true fixed-k minimum  (14.106)
 ```
 
-The current theorem provides only the near-infimum part.
+`parisiParameterDomain` is the compact closed mass/overlap domain.
+`closedRandomFieldParisiFunctional` extends the recursion through zero masses,
+and `continuousOn_closedRandomFieldParisiFunctional_parameters` supplies joint
+continuity. Compact minimization and the level-reduction lemmas remove repeated
+and endpoint masses and repeated overlaps while preserving value and full
+fixed-level minimality.
 
-The remaining implementation is:
-
-```text
-joint mass/overlap continuity on the closed mass domain, including exponent zero
-        ↓
-mass minimization
-        ↓
-equal-mass and endpoint-mass reduction
-        ↓
-strict MIN parameters preserving the minimum value
-```
-
-A minimum over overlaps alone is not full MIN. The completed overlap-level reduction is implemented in `ParisiParameterContinuity.lean`, `ParisiLevelReduction.lean`, and `ParisiCompactMin.lean`; the remaining mass-coordinate work is the first hard dependency of the lower-bound route.
+`exists_randomFieldParisiMIN` now returns strict admissible masses and overlaps,
+a value below `randomFieldParisiInf μh ξ + ε`, a concrete q-minimizer, and
+`IsMinOn` for the closed functional over `parisiParameterDomain k`. This
+discharges both (14.105) and (14.106) in the current Lean interface.
 
 ---
 
@@ -332,9 +325,19 @@ which is the analogue of Talagrand (14.221)–(14.222).
 
 The corresponding i.i.d.-field theorem is `iidExternalFieldParisiQ_strict_chain_and_eq_moment_of_isMin`, and `exists_nearOptimal_randomFieldParisi_stationary` supplies near-optimal overlap minimizers with concrete stationarity moments.
 
+### Split identities already present
+
+`ParisiMVariation.lean` imports `ParisiFullMin` and defines
+`splitParisiMassLeft`, `splitParisiMassRight`, and `splitParisiOverlap` using
+`Fin.insertNth`. The left split agrees with the unsplit value at the left
+endpoint for any inserted mass. The mirror split agrees at the right endpoint
+for any inserted mass on a nonterminal interval. Both agree throughout the
+original overlap interval when the inserted mass matches the original mass.
+The equal-mass proof reuses the existing q-update flatness theorem.
+
 ### Missing part of §14.7
 
-The main estimate needs much more than q-stationarity. Missing are the mass/splitting variations and their quantitative consequences:
+The main estimate still needs mass derivatives and their quantitative consequences:
 
 ```text
 Φ(m,u)
@@ -655,6 +658,11 @@ SpinGlass/Parisi/ParisiInf.lean
 ```text
 SpinGlass/Parisi/ParisiMin.lean
 SpinGlass/Parisi/ParisiQDeriv.lean
+SpinGlass/Parisi/ParisiParameterContinuity.lean
+SpinGlass/Parisi/ParisiMassContinuity.lean
+SpinGlass/Parisi/ParisiLevelReduction.lean
+SpinGlass/Parisi/ParisiFullMin.lean
+SpinGlass/Parisi/ParisiMVariation.lean
 ```
 
 ### Coupled copies
@@ -711,13 +719,11 @@ Common/Mathlib/Probability/Distributions/Gaussian/*
 ## Recommended new dependency cone
 
 ```text
-ParisiMin
+ParisiMin + ParisiQDeriv + continuity/reduction layers
    │
-   └── full MIN existence
+   └── ParisiFullMin             (full MIN existence)
           │
-ParisiQDeriv
-   │
-   └── ParisiMVariation          (new, §14.7 mass/split package)
+          └── ParisiMVariation   (split identities proved; calculus pending)
           │
 CoupledProp + CoupledLambdaZero + CoupledDeriv + CoupledSecondDeriv
           │
@@ -771,8 +777,9 @@ Those are important elsewhere in the repository, but Talagrand's Chapter 14 proo
 | --- | --- | --- |
 | (14.83), (14.84), (14.89) | `randomFieldParisiX₀`, `randomFieldParisiFunctional`, `randomFieldParisiFunctional_eq_integral` | None: the outer site-law expectation is present. |
 | Guerra bound (14.90) | `iidFieldMixedPSpinFreeEnergy_le_randomFieldParisiInf` | None under its explicit global differentiability hypotheses. |
-| Definition 14.5.3, Lemma 14.5.5 | `exists_randomFieldParisiFunctional_lt_inf_add_of_talagrand`, `bddBelow_randomFieldParisiSet_of_talagrand`, `continuousOn_randomFieldParisiFunctional_overlapCube`, `exists_randomFieldParisiQMinimum_of_fixed_masses`, `randomFieldParisiFunctional_erase_adjacent_eq`, `exists_nearOptimal_randomFieldParisiQMinimizer` | Joint mass/overlap continuity on the closed mass domain, mass minimization, and equal-mass/endpoint-mass reduction. |
-| Proposition 14.7.5, (14.222) | `randomFieldParisiQ_strict_chain_and_eq_concrete_moment_of_isMin`, `iidExternalFieldParisiQ_strict_chain_and_eq_moment_of_isMin`, `exists_nearOptimal_randomFieldParisi_stationary` | Mass-coordinate variational consequences of full finite-dimensional minimality. |
+| Definition 14.5.3, Lemma 14.5.5 | `exists_randomFieldParisiMIN`, `closedRandomFieldParisiFunctional`, `parisiParameterDomain` in `ParisiFullMin.lean` | None for MIN existence; use the returned full fixed-level minimum in later mass variations. |
+| Proposition 14.7.5, (14.222) | `randomFieldParisiQ_strict_chain_and_eq_concrete_moment_of_isMin`, `iidExternalFieldParisiQ_strict_chain_and_eq_moment_of_isMin`, `exists_nearOptimal_randomFieldParisi_stationary` | The later mass-coordinate variational consequences remain. |
+| Split insertion for §14.7 | `splitParisiMassLeft`, `splitParisiMassRight`, `splitParisiOverlap`, and both matching-mass identities in `ParisiMVariation.lean` | The `Φ`, `U`, `f` derivative estimates. |
 | Proposition 14.6.3 | `coupled_bound_coupling_siteField`, `coupled_bound_coupling_zero_siteField`, `coupled_bound` | Integrable adapters for the shared i.i.d. site-field law and the particular MIN interpolation. |
 | Coupled endpoint and lambda calculus | `CoupledLambdaZero`, `CoupledEndpoint`, `CoupledDeriv`, `pairSiteY₀_le_taylor` | Uniform strict improvement for Sections 14.8-14.10. |
 | Theorem 14.5.7, (14.112) | Coupled bounds above | All seven main-estimate cases and a constant uniform in volume, interpolation time, and realizable constrained overlap. |
@@ -786,7 +793,7 @@ Those are important elsewhere in the repository, but Talagrand's Chapter 14 proo
 
 `ParisiParameterContinuity.lean` includes the plain Gaussian root expectation as an exponent-zero Cole-Hopf level. Changing all variances is bounded by a finite sum of one-level moduli, uniformly in both the spatial argument and the external field. Integrating this bound proves joint overlap continuity under finite first moment. It also proves continuity of the exponent at zero for a fixed linear-growth terminal function.
 
-`ParisiLevelReduction.lean` deletes any zero-variance level and specializes this identity to consecutive equal overlaps while preserving the correction sum exactly. `ParisiCompactMin.lean` iterates this deletion until the overlap list is strict, with no increase in value or level count, then applies concrete q-stationarity and strict endpoint results. Joint continuity with changing terminal functions and mass lists remains necessary for minimization on the full closed mass domain.
+`ParisiLevelReduction.lean` deletes any zero-variance level and specializes this identity to consecutive equal overlaps while preserving the correction sum exactly. `ParisiCompactMin.lean` iterates this deletion until the overlap list is strict, with no increase in value or level count, then applies concrete q-stationarity and strict endpoint results. `ParisiMassContinuity.lean` and `ParisiFullMin.lean` provide the remaining joint continuity, compact mass minimization, and level normalization. `ParisiMVariation.lean` reuses the deletion and q-update identities to establish the first split invariances.
 
 ---
 
@@ -820,9 +827,9 @@ When completed, add `ParisiLowerBound` to the umbrella import so CI protects it.
 
 ## Practical “where to edit” summary
 
-### First edits
+### Completed prerequisite
 
-`ParisiMin.lean`:
+`ParisiFullMin.lean`:
 
 ```text
 closed domain
@@ -832,12 +839,12 @@ redundant-level deletion
 full MIN theorem
 ```
 
-### Second edits/new file
+### Current variational work
 
-`ParisiMVariation.lean` (recommended):
+`ParisiMVariation.lean`:
 
 ```text
-split insertion
+both split insertions and endpoint/matching-mass identities (proved)
 Φ / U / f
 mass derivative identities
 f bounds
