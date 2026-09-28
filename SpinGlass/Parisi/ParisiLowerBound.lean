@@ -1,7 +1,7 @@
 import SpinGlass.Parisi.ParisiInf
-import SpinGlass.Parisi.ParisiQDeriv
-import SpinGlass.Parisi.ExternalFieldZero
-import SpinGlass.Parisi.FieldContinuity
+import SpinGlass.Parisi.Minimizer.QVariation.RandomField
+import SpinGlass.Parisi.Field.ExternalFieldZero
+import SpinGlass.Parisi.Field.FieldContinuity
 
 /-!
 # The lower half of the Parisi formula and the convergence corollary

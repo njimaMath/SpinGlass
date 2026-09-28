@@ -3,8 +3,8 @@ Copyright (c) 2026 Matteo Cipollina. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
-import SpinGlass.Parisi.GuerraParisi
-import SpinGlass.Parisi.RandomFieldFunctional
+import SpinGlass.Parisi.Guerra.Monotone
+import SpinGlass.Parisi.Field.RandomFieldFunctional
 
 /-!
 # The infimum of the Parisi functional, and the upper half of the Parisi formula

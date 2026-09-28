@@ -1497,29 +1497,29 @@ linear map** `T` has kernel `⟪Cov (T†e_x), T†e_y⟫ = ∑_{a,b} (T†e_x)_
 `K (f x) (f y)`), the linear image `U(x) = ∑_c A x c Z_c` of independent coordinates
 `Z_c ~ N(0, v_c)` (`GaussianField.ofCoords`, kernel `∑_c v_c A x c A y c`,
 `FiniteGibbs/GaussianFieldCoords`) and the sum of two pullbacks `H(σ¹) + H(σ²)`
-(`GaussianField.pairModel`, `Parisi/CoupledScheme`) are its instances.
+(`GaussianField.pairModel`, `Parisi/Coupled/CoupledScheme`) are its instances.
 `FiniteGibbs/WeightedInterpolation`: the comparison bound for the
 **weighted** free energy `(1/n) log ∑_x w_x e^{-H x}`, `w ≥ 0` (`wFreeEnergy_sub_le`): a family of
-branches some of which carry weight `0`. `Parisi/GuerraBound`: from a pointwise trace bound
+branches some of which carry weight `0`. `Parisi/Guerra/GuerraBound`: from a pointwise trace bound
 `(1/2) c₀ + (1/2)⟨θ⟩_H` to `𝔼 F_w(U+c) - 𝔼 F_w(V+c) ≤ ∫₀¹ b(t) dt`, `b` continuous by dominated
 convergence (`wFreeEnergy_sub_le_of_le_treeBoundIntegrand`), shared by the one- and the
 two-dimensional schemes.
 
-`Parisi/CoupledTrace`: **Lemma 14.6.1 / (14.129)**, the Guerra bound for **coupled copies**. On
+`Parisi/Coupled/CoupledTrace`: **Lemma 14.6.1 / (14.129)**, the Guerra bound for **coupled copies**. On
 `(Fin 2 → Σ_N) × A` the model kernel is `N ∑_{ℓ,ℓ'} ξ(R^{ℓ,ℓ'})` and the interpolating kernel of
 (14.127) is `N ∑_{ℓ,ℓ'} R^{ℓ,ℓ'} ξ'(q^{ℓ,ℓ'}_{α,γ})`; the constraint `R_{1,2} = u` is imposed by
 zero weights, and under (14.128) the diagonal is the constant `-2θ(1) - 2θ(u)` — without the
 constraint the interaction term `⟨ξ(R_{1,2}) - R_{1,2} ξ'(u)⟩` has the wrong sign for the tangent
 inequality — so the trace is at most `-θ(1) - θ(u) + (1/2)⟨∑_{ℓ,ℓ'} θ(q^{ℓ,ℓ'})⟩`
 (`wGuerraTrace_pair_le`, tangent-line hypothesis over an arbitrary set of `q`-values, so `u < 0`
-is allowed), integrated: `wFreeEnergy_pair_sub_le`. `Parisi/SiteTreeFieldLaw`: the Gaussian
+is allowed), integrated: `wFreeEnergy_pair_sub_le`. `Parisi/Tree/SiteTreeFieldLaw`: the Gaussian
 coordinates of a truncated cascade over any finite site type `S` (`siteTreeCoords_law`);
-`Parisi/TreeFieldLaw`, `Parisi/TreeField`: the case `S = Fin N`, the marks field
-`H(σ,α) = ∑_i σ_i ∑_p z_{i,p,α}` of (14.73) (`treeField`); `Parisi/PairTreeField`:
+`Parisi/Tree/TreeFieldLaw`, `Parisi/Tree/TreeField`: the case `S = Fin N`, the marks field
+`H(σ,α) = ∑_i σ_i ∑_p z_{i,p,α}` of (14.73) (`treeField`); `Parisi/Tree/PairTreeField`:
 `S = Fin N × Fin 2` with per-level `2×2` factors `L_p` (`L_p L_pᵀ` the covariance of the pair
 `(y_p^1, y_p^2)`), the field `H(σ¹,σ²,α)` of (14.135) (`pairTreeField`), whose kernel telescopes to
 the kernel of (14.127) when `𝔼 y_p^ℓ y_p^{ℓ'} = ξ'(ρ^{ℓ,ℓ'}_{p+1}) - ξ'(ρ^{ℓ,ℓ'}_p)`
-(`pairTreeFieldKernel_eq_pairTreeKernel`). `Parisi/CoupledScheme`: Talagrand's choice
+(`pairTreeFieldKernel_eq_pairTreeKernel`). `Parisi/Coupled/CoupledScheme`: Talagrand's choice
 (14.150)–(14.151) — one shared Gaussian per level below `τ`, independent ones from `τ` on
 (`couplingFactor`), so `ρ^{ℓ,ℓ}_p = q_p`, `ρ^{1,2}_p = q_{min(p,τ)}` (`couplingRho`) — with the
 Parisi variances gives the kernel of (14.127) (`pairTreeFieldKernel_coupling`) and (14.128) with
@@ -1527,7 +1527,7 @@ Parisi variances gives the kernel of (14.127) (`pairTreeFieldKernel_coupling`) a
 (`wFreeEnergy_coupled_sub_le`): the model field `H_N(σ¹) + H_N(σ²)` on the model law against
 the marks field on the marks law, `𝔼 F_w(U + c) - 𝔼 F_w(V + c) ≤ ∫₀¹ b(t) dt` with
 `b(t) = -θ(1) - θ(q_τ) + (1/2) ∑_{ℓ,ℓ'} 𝔼⟨θ(ρ^{ℓ,ℓ'}_{(α,γ)})⟩_t`, the two-dimensional
-`guerra_truncated`. `Parisi/CoupledEndpoint`: at the endpoint `s = 0` the constraint is dropped by
+`guerra_truncated`. `Parisi/Coupled/CoupledEndpoint`: at the endpoint `s = 0` the constraint is dropped by
 the **`λ`-trick** (14.140), `∑_{R=u} ≤ e^{-λu} ∑_{all}(⋯ e^{λR})` (`wZ_mul_le_exp_mul_wZ_sub`, for
 any weighted partition function), and the sites decouple (`Fintype.sum_exp_sum_pi`:
 `∑_σ e^{∑ᵢ fᵢ(σᵢ)} = ∏ᵢ ∑_s e^{fᵢ(s)}`, `Common/…/ExpPiSum`) with the site partition function
@@ -1537,9 +1537,9 @@ coordinates: `cascadeRec_coupling`, from the pushforward lemma `cascadeRec_map` 
 commutes with a change of marks, `Cascade`) and `cascadeRec_pairMarkLaw`, the product laws pushed
 along the coupling maps being the coupled mark laws (`map_couplingMap_prod_eq_pairMarkLaw`).
 
-`Parisi/PairTreeFieldIndep`, `Parisi/CoupledInterpolation`, `Parisi/CoupledLevels`,
-`Parisi/LevelBoundLaw`, `Parisi/CoupledBoundLaw`, `Parisi/CascadeLogIntegrable`,
-`Parisi/CoupledFixedWeights`, `Parisi/CoupledParisi`: **Talagrand's (14.147)**, the bound for
+`Parisi/Tree/PairTreeFieldIndep`, `Parisi/Coupled/CoupledInterpolation`, `Parisi/Coupled/CoupledLevels`,
+`Parisi/Tree/LevelBoundLaw`, `Parisi/Coupled/CoupledBoundLaw`, `Parisi/Tree/CascadeLogIntegrable`,
+`Parisi/Coupled/CoupledFixedWeights`, `Parisi/Coupled/CoupledParisi`: **Talagrand's (14.147)**, the bound for
 coupled copies integrated over the cascade (`coupled_bound`, `coupled_bound'`,
 `coupled_bound_of_top`). The two-dimensional scheme runs on one site-tree cascade over
 `Fin N × J` with per-level `2 × J` factors, the interpolating field on the columns `J₁` and the
@@ -1563,16 +1563,16 @@ Theorem 14.2.1 conditionally on the disorder and the root marks
 Two remarks: Talagrand's (14.137) omits the diagonal term `α = γ`, and the bound proved here is
 stronger than his (14.147) by `(θ(1) + θ(u))(1 − n_κ) ≥ 0` (`pairDiagDefect`); and leaving
 `ρ_{κ+1}` free absorbs exactly the last level `n_{κ+1} = 1` of Proposition 14.6.3, so no
-continuity argument in the `n_p` is needed. `Parisi/CoupledSite`: the endpoint `Y₁` factorizes
+continuity argument in the `n_p` is needed. `Parisi/Coupled/CoupledSite`: the endpoint `Y₁` factorizes
 over the sites along the currying `(Fin N × J → ℝ) ≃ (Fin N → J → ℝ)` (`parisiRec_pairCoshF`,
 from `parisiRec_sum` and `MeasureTheory.map_curry_pi`), and with the same field at every site
 `𝔼_{z₀} Y₁ = N Y₀` for Talagrand's one-site `Y₀` (`pairSiteY₀`, `integral_parisiRec_pairCoshF`).
-`Parisi/CoupledProp`: **Proposition 14.6.3** (`coupled_bound_coupling`,
+`Parisi/Coupled/CoupledProp`: **Proposition 14.6.3** (`coupled_bound_coupling`,
 `coupled_bound_coupling_of_top`, `coupled_bound_coupling_zero`): Talagrand's coupling
 (14.155)–(14.158) with a sign `η = ±1` (`couplingFactorSgn`, `couplingRhoSgn`), the covariance
 identities (14.133), the level sum (14.152) (`coupledLevelSum_couplingRhoSgn`), the extra field of
 (14.160) on further columns, and the constrained free energy (14.149) as the left-hand side
-(`constrainedPairZ`). `Parisi/CoupledLambdaZero`: at `λ = 0` the right-hand side is exactly
+(`constrainedPairZ`). `Parisi/Coupled/CoupledLambdaZero`: at `λ = 0` the right-hand side is exactly
 `2𝒫_k(m, q)` (`coupling_rhs_zero_eq`: `Y₀(0) = 2X₀` from `cascadeRec_coupling`
 (`pairSiteY₀_coupling_zero`), the level sum with the halved exponents, and the diagonal defect at
 `q_{k+1}` against the absorbed level (14.84)), hence the constrained free energy is at most
@@ -1593,7 +1593,7 @@ average of the derivative**, `d/dλ parisiRec k ms μs (F_λ) = 𝔼(W₁ ⋯ W_
 the point — Talagrand's `Y'_p = 𝔼_p(W_p Y'_{p+1})`, (14.185) and (14.215), iterated over the
 levels; the proof is an induction with `hasDerivAt_integral_of_dominated_loc_of_deriv_le` at each
 level, the bound on the derivative propagating (14.4) to a neighbourhood
-(`lintegral_ofReal_exp_le_of_le`). `Parisi/CoupledDeriv`: the `λ`-derivative of the one-site
+(`lintegral_ofReal_exp_le_of_le`). `Parisi/Coupled/CoupledDeriv`: the `λ`-derivative of the one-site
 function, `∂_λ Y_{κ+1} = (ch A ch B sh λ + sh A sh B ch λ)/(ch A ch B ch λ + sh A sh B sh λ)`
 (`pairSiteY'`), bounded by `1` (`abs_pairSiteY'_le_one`, Talagrand's inequality in the proof of
 Lemma 14.6.5), (14.4) for the one-site branch function (`lintegral_ofReal_exp_pairSiteF_ne_top`,
@@ -1620,7 +1620,7 @@ approximate nondecreasing tuples in `(0,1]^k`, `strictApprox`). Consequences:
 `skFreeEnergy_le_parisiFunctional_of_monotone`
 hold for nondecreasing `0 < n₁ ≤ ⋯ ≤ n_κ ≤ 1`.
 
-**Lemma 14.6.5** (`Parisi/CoupledSecondDeriv`): `pairSiteY₀_eq_integral` (`Y₀(λ)` as the
+**Lemma 14.6.5** (`Parisi/Coupled/CoupledSecondDeriv`): `pairSiteY₀_eq_integral` (`Y₀(λ)` as the
 expectation over root marks and cascade of `log ∑_α v_α exp Y_{κ+1}(λ, ζ_α)`, from Theorem 14.2.1
 and the joint (14.4) `lintegral_lintegral_ofReal_exp_pairSiteF_ne_top` computed from the four
 exponentials `ofReal_exp_pairSiteF_eq_sum`), `cascadeSum_pairSiteG` (the `λ`-structure
@@ -1676,7 +1676,7 @@ mechanisms into one-liners: a zero-variance level drops (`coleHopfIterateList_ze
 partition function is `∑_α u_α Z_α(c)` with `Z_α(c) = ∑_x c_x e^{-H(x,α)}` (`wCondZ`, `wZ_prod_eq`)
 and the pair average of a function of the `A`-components is the pair average over `A` with the
 weights `u_α Z_α(c)` (`sum_wGibbs_prod_pair`) — the marginalization behind Talagrand's (14.76) and
-(14.137); `Parisi/BranchAverages`' `sum_wGibbs_pair_eq` is the case `c = 1`. `Parisi/PairLevels`,
+(14.137); `Parisi/Tree/BranchAverages`' `sum_wGibbs_pair_eq` is the case `c = 1`. `Parisi/Tree/PairLevels`,
 generic in the mark type: the pair fractions `gibbsPair`/`truncPair`, their monotone limit
 `M → ∞` (`tendsto_truncPair`), **Proposition 14.3.3 for the pair fraction**
 `𝔼⟨1_{(α,γ)≥r}⟩ = 1 - m_r` under the product of the weights and marks laws for every branch
@@ -1684,7 +1684,7 @@ weight with (14.4) (`integral_gibbsPair_eq`), and the level decomposition of the
 integrand for weights `u_α c_x` and any function of the level `(α,γ)`
 (`treeBoundIntegrand_prod_eq_levelBound`); the one-dimensional statements are their instances.
 
-`Parisi/TreeTrace`: on `Σ_N × A`, the weighted Guerra trace of the model kernel `N ξ(R_{στ})`
+`Parisi/Tree/TreeTrace`: on `Σ_N × A`, the weighted Guerra trace of the model kernel `N ξ(R_{στ})`
 against a **tree kernel** `N R_{στ} ξ'(q_{α,γ})` with `q_{α,α} = q̄` (Talagrand's (14.63)) is
 exactly `(1/2)(ξ(1) - ξ'(q̄)) - (1/2)⟨ξ(R) - R ξ'(q_{α,γ})⟩` (`wGuerraTrace_tree_eq`, (14.68)),
 and when `ξ` lies above its tangents — convexity, (14.61) — at most
@@ -1696,7 +1696,7 @@ projections and are independent there (`prodLeft`, `prodRight`, `prodLeft_indepF
 and every positive semidefinite matrix is the kernel of the canonical field `id` under `N(0, S)`
 (`GaussianField.ofMultivariateGaussian`) — the model field of a mixed `p`-spin Hamiltonian.
 
-`Parisi/TreeFieldLaw`, `Parisi/TreeField`: **the Gaussian field of the marks** of a truncated
+`Parisi/Tree/TreeFieldLaw`, `Parisi/Tree/TreeField`: **the Gaussian field of the marks** of a truncated
 cascade, Talagrand's `H(σ, α) = ∑ᵢ σᵢ ∑_{0 ≤ p ≤ k} z_{i,p,α}` of (14.73). The coordinates the
 truncated tree sees — the level-`0` vector and the marks of the truncated nodes, site by site — are
 independent real Gaussians (`treeCoords_law`, from `cascadeMarksLaw_map_truncMarks`, the
@@ -1705,13 +1705,13 @@ linear image `treeLin` with adjoint `L† e_x = A x` on Dirac vectors, and `tree
 `GaussianField` on `Σ_N × A` with kernel `(∑ᵢ σᵢ τᵢ) · treeCov α γ`,
 `treeCov α γ = v₀ + ∑_{p : α|_{p+1} = γ|_{p+1}} v_p` (`sum_coordVar_treeCoeff`) — Talagrand's
 (14.74), `R_{1,2} ∑_{p < (α,γ)} 𝔼 z_p²`, which telescopes to `R_{1,2} ξ'(q_{(α,γ)})` for the
-variances (14.72): `Parisi/TreeCov` — the agreeing levels of two branches form an initial segment
+variances (14.72): `Parisi/Tree/TreeCov` — the agreeing levels of two branches form an initial segment
 (`branchNode_eq_iff_lt_branchLevel`, of length `branchLevel α γ = (α,γ) - 1`), the tree
 covariance telescopes to `ξ'(q_{(α,γ)}) - ξ'(q₀)` for the Parisi variances when `ξ'` is
 nondecreasing (`treeCov_eq_deriv`), and so **the kernel of the marks field is the tree kernel**
 `N R_{στ} ξ'(q_{(α,γ)})` of (14.63) when `ξ'(0) = 0` (`treeFieldKernel_eq_treeKernel`).
 
-`Parisi/GuerraRSB`: **Guerra's interpolation for the truncated tree at fixed weights**
+`Parisi/Guerra/GuerraRSB`: **Guerra's interpolation for the truncated tree at fixed weights**
 (Lemma 14.4.1 with (14.79) and (14.80), integrated in `t`): on the product of the model law
 `N(0, N ξ(R))` with the marks law, with the lifted model Hamiltonian and the marks field as the two
 independent fields and the branch weights `u*_α` as weights, `wFreeEnergy_sub_le` gives
@@ -1818,7 +1818,7 @@ function differentiable on a set (`ConvexOn.add_deriv_mul_sub_le`), with its con
 Mathlib had only the two secant-slope halves. This is the form in which the convexity of `ξ` is
 used in (14.79).
 
-`Parisi/BranchAverages`, `Parisi/PairLevels`: at a general address `α` of the tree, the
+`Parisi/Tree/BranchAverages`, `Parisi/Tree/PairLevels`: at a general address `α` of the tree, the
 interpolating Hamiltonian `√t H_N(σ) + √(1−t) ∑ᵢ σᵢ z_{i,α} + h ∑ᵢ σᵢ` (`branchHam`, Talagrand's
 (14.77)) and its partition function `exp F_t(α)` (`branchZ`, (14.78)) restrict on a truncated tree
 to `truncHam`, and the Gibbs pair average on `Σ_N × A_M` is a pair average over the branches with
@@ -1832,14 +1832,14 @@ fractions `Q_r^M/(S^M)²` (`treeBoundIntegrand_eq_levelBound`), which increase t
 fractions `Q_r/S²` (`tendsto_truncPair`); by dominated convergence the truncated bounds converge
 to the bound `guerraBound` for the whole cascade (`tendsto_integral_guerraTruncBound`).
 
-`Parisi/GuerraFixedWeights`: **the interpolation for the whole cascade at fixed weights**
+`Parisi/Guerra/GuerraFixedWeights`: **the interpolation for the whole cascade at fixed weights**
 (`guerra_fixed_weights`): for every sample of the cascade weights with `0 < W < ∞`,
 `p_N ≤ (1/N) 𝔼_z log (∑_α u*_α exp F(z_α) / W) + ∫₀¹ b_w(t) dt`, by letting `M → ∞` in the
 truncated bound — the truncated partition functions increase to the cascade sum, and both
 logarithms are integrable because they lie between a single branch `u*_{α₀} ≥ c > 0` and the
 integrable cascade sum.
 
-`Parisi/GuerraParisi`: **Guerra's broken replica-symmetry bound**, Vol. II Theorem 14.4.3 and
+`Parisi/Guerra/GuerraParisi`: **Guerra's broken replica-symmetry bound**, Vol. II Theorem 14.4.3 and
 (14.90), `p_N ≤ 𝒫_k(m, q)` (`mixedPSpinFreeEnergy_le_parisiFunctional`), obtained by integrating
 the fixed-weights bound over the cascade weights. The first term is `φ(0)`: Theorem 14.2.1
 conditionally on the root marks turns `𝔼 log ∑_α v_α exp F(α)` into `F₁`; the site factorization

@@ -1,53 +1,99 @@
-# External fields in the Parisi development
+# Parisi formula formalization
 
-The external field is specified by a probability law `μh : Measure ℝ`. Its site
-coordinates have product law `externalFieldVecLaw N μh`. The Gaussian interaction
-and cascade marks are sampled independently of that vector. Every replica of a
-quenched system uses the same realized vector.
+This directory develops the finite-volume Parisi functional, the Guerra upper
+bound, and Talagrand's Chapter 14 route to the lower bound. The goal is to finish
+the existing theorems in [ParisiLowerBound.lean](ParisiLowerBound.lean) without
+changing their claims. The reference is
+[Talagrand, Vol. II](../../Notes/Talagrand-spin-glass-II.pdf), Sections 14.5-14.10.
 
-For the free energy and the Parisi functional, the moment assumption is
-`Integrable (fun h : ℝ => h) μh`, equivalently a finite first absolute moment.
-There is no Gaussian assumption on `μh`. Degenerate laws are allowed, including
-zero field. The nondegeneracy assumption used in the overlap-minimizer results
-is separate and is recorded in `NondegenerateExternalFieldLaw`.
+The source inventory on 2026-09-28 has one `sorry` in this directory, in the
+nondegenerate eventual lower bound. MIN existence, concrete overlap stationarity,
+and initial split identities have implementations. Concrete recursion mass
+derivatives, the main estimate, concentration, localization, and the
+interpolation lower comparison
+remain open. The general lower bound and convergence corollaries are assembled
+but depend on the open theorem; this is not yet a proof of the Parisi formula.
 
-| Interface | Role |
+[ARISTOTLE.lean](ARISTOTLE.lean) supplies compiled standalone analytic lemmas for
+mass and Gaussian split calculus, quantitative variations, field truncation,
+bounded differences, localization, and endpoint arguments. Its
+[status and application guide](Docs/ARISTOTLE.md) records the hypotheses,
+validation evidence, and remaining bridges to the actual Parisi model.
+
+## Start here
+
+| Need | Document |
 | --- | --- |
-| `siteExternalFieldEnergy` | Field energy conditional on a realized site vector |
-| `siteFieldMixedPSpinFreeEnergy` | Free energy conditional on that vector |
-| `iidFieldMixedPSpinFreeEnergy`, `iidFieldSKFreeEnergy` | Quenched free energy integrated over the i.i.d. site vector |
-| `randomFieldParisiX₀`, `randomFieldParisiFunctional` | One-site Parisi recursion with the outer expectation over `μh` |
-| `randomFieldParisiSet`, `randomFieldParisiInf` | Admissible functional values and their infimum |
-| `sharedReplicaSiteField` | Embed a site vector into the two-replica field interface |
-| `randomFieldPairSiteY₀`, `randomFieldPairSiteY₀'` | Coupled one-site expectation and averaged derivative, using the same field in both replicas |
+| Agent rules and validation | [AGENTS.md](AGENTS.md) |
+| Find a declaration or module | [INDEX.md](INDEX.md) |
+| Dependencies and current evidence | [Architecture](Docs/ARCHITECTURE.md) |
+| Continue with a bounded task | [Editing plan](Docs/EDITING_PLAN.md#next-task) |
+| Use the standalone analytic lemmas | [ARISTOTLE guide](Docs/ARISTOTLE.md) |
 
-The branch Hamiltonians, Ising site factorization, cascade endpoint, Gibbs pair
-averages, and Guerra interpolation accept realized vectors `h : Fin N → ℝ`.
-Their statements are conditional on the field realization. Integrating their
-site sums against `externalFieldVecLaw` gives the law-level functional through
-`integral_siteAverage_parisiFunctional`. The finite-volume i.i.d. Guerra bound
-and its SK specialization allow repeated positive Parisi exponents.
+## Module layout
 
-The coupled interpolation already accepts a realized field
-`a : Fin N × Fin 2 → ℝ`. Its site factorization and coupling bounds also have
-general vector forms. For replicas of the same system, use
-`a = sharedReplicaSiteField hVec`. Scalar `h : ℝ` and one-site
-`h : Fin 2 → ℝ` in recursion lemmas denote conditional field values.
-`randomField_coupling_rhs_zero_eq` and
-`hasDerivAt_randomFieldPairSiteY₀_coupling_zero` supply their quenched
-zero-coupling versions. The general differentiation-under-the-field-integral
-lemma states its integrability hypothesis explicitly.
+| Directory or file | Responsibility |
+| --- | --- |
+| Tree/ | Gaussian tree fields, branches, pair levels, and cascade limits |
+| Guerra/ | One-copy interpolation and the upper bound |
+| Coupled/ | Two-copy interpolation, coupling bounds, and derivatives |
+| Field/ | I.i.d. field laws, averaged functionals, and field continuity |
+| Minimizer/ | Closed-domain compact minima and strict MIN extraction |
+| Minimizer/QVariation/ | Concrete overlap derivatives and stationarity |
+| Variational/ | Continuity, level deletion, near minima, and split variations |
+| [ParisiInf.lean](ParisiInf.lean) | Variational infimum and optimized upper bound |
+| [ParisiLowerBound.lean](ParisiLowerBound.lean) | Lower-bound target and reductions |
+| [ARISTOTLE.lean](ARISTOTLE.lean) | Mathlib-only analytic lemmas; concrete applications pending |
 
-Constant fields are special cases of the i.i.d. model with `μh = Measure.dirac h`.
-The free energy, Parisi functional, coupled expectation, and variational
-infimum have simplification theorems for these laws. Existing scalar
-finite-volume Guerra theorems specialize the vector argument.
+Use owning modules in proof files, for example:
 
-The older theorems named `integral_mixedPSpinFreeEnergy_le_...` average a single
-spatially constant field. They are retained as constant-field statements.
-For the i.i.d. site model, use the theorems named
-`iidFieldMixedPSpinFreeEnergy_le_...` instead.
+```lean
+import SpinGlass.Parisi.Minimizer.Full
+```
 
-The law-level infimum bounds any convergent sequence of i.i.d. free energies.
-The theorem about such a limit explicitly requires convergence; it does not
-assert existence of a thermodynamic limit for a general field law.
+The convenience import SpinGlass.Parisi currently excludes the capstone and
+ARISTOTLE. Import and build either leaf explicitly when using it.
+
+## External-field semantics
+
+The one-site law is a probability measure μh on the reals. Site coordinates have
+product law `externalFieldVecLaw` N μh, independent of Gaussian disorder and cascade
+marks. Every replica uses the same realized site vector.
+
+| Object | Meaning |
+| --- | --- |
+| siteFieldMixedPSpinFreeEnergy | Free energy for a realized site vector |
+| iidFieldMixedPSpinFreeEnergy | Free energy averaged over the i.i.d. site vector |
+| randomFieldParisiX₀, `randomFieldParisiFunctional` | One-site recursion and functional averaged over the law |
+| `randomFieldParisiInf` | Infimum over admissible functional values |
+| `sharedReplicaSiteField` | Shared realized field in the coupled model |
+| randomFieldPairSiteY₀ | Coupled one-site expectation with shared field |
+
+The integrability results for the functional and upper bound use a finite first
+absolute moment. The lower-bound theorem assumes a finite second moment;
+`NondegenerateExternalFieldLaw` additionally requires positive second moment.
+None of these means the field must be Gaussian or almost surely nonzero.
+
+The book's field conditions should be read at their Chapter 14 source:
+
+| Source | Field condition or qualification |
+| --- | --- |
+| (14.65), printed p. 363 | Site fields are i.i.d. copies of a random variable $h$ |
+| Before Theorem 14.5.2, p. 373 | The nonzero-field branch means $\mathbb E h^2>0$ |
+| After (14.123), p. 381 | Random fields need not be Gaussian; the displayed concentration proof is completed only for deterministic fields, with further work indicated for random fields |
+
+The displayed model definition (14.65) does not itself state a finite-second-
+moment hypothesis. That integrability assumption is explicit in the current
+Lean lower-bound contract. Preserve it, and do not attribute extra boundedness
+or Gaussian assumptions to Chapter 14 or import them from a different chapter.
+
+Constant fields are Dirac-law specializations. Older results named
+integral_mixedPSpinFreeEnergy_le_... average a spatially constant field; use
+iidFieldMixedPSpinFreeEnergy_le_... for independent site fields.
+`integral_siteAverage_parisiFunctional` connects realized site sums to the
+law-level functional.
+
+The capstone keeps covariance positive semidefiniteness separate from
+TalagrandXiCondition. Its convergence and liminf corollaries also retain the
+upper-bound API's global differentiability and derivative-at-zero hypotheses.
+Consult their exact signatures before applying them.

@@ -274,15 +274,15 @@ calculus), Gaussian fields pull back along maps of state spaces, and the bound h
 **weighted free energies** `(1/n) log ∑_x w_x e^{-H x}` with nonnegative weights
 (`FiniteGibbs/WeightedInterpolation`) — Lemma 14.4.1 for a finite family of branches, with the
 convexity bound (14.79) on the trace of the model kernel against a tree kernel
-(`Parisi/TreeTrace`), and a product of real Gaussians is identified with a diagonal multivariate
+(`Parisi/Tree/TreeTrace`), and a product of real Gaussians is identified with a diagonal multivariate
 Gaussian (`Gaussian/PiGaussian`); the marks of a truncated cascade with Gaussian levels form a
-Gaussian field on `Σ_N × branches` with the tree covariance of (14.74) (`Parisi/TreeField`), and
+Gaussian field on `Σ_N × branches` with the tree covariance of (14.74) (`Parisi/Tree/TreeField`), and
 Guerra's interpolation bound holds for the truncated tree at fixed weights, with both endpoints
-computed — Lemma 14.4.1 with (14.79)–(14.80) (`Parisi/GuerraRSB`, `guerra_truncated`).
+computed — Lemma 14.4.1 with (14.79)–(14.80) (`Parisi/Guerra/GuerraRSB`, `guerra_truncated`).
 
 The tree is then untruncated and the weights integrated out, giving **Guerra's broken
 replica-symmetry bound**, Vol. II Theorem 14.4.3: `p_N ≤ 𝒫_k(m, q)`
-(`Parisi/GuerraParisi`, `mixedPSpinFreeEnergy_le_parisiFunctional`), for every `N`, every number
+(`Parisi/Guerra/GuerraParisi`, `mixedPSpinFreeEnergy_le_parisiFunctional`), for every `N`, every number
 of levels `k`, every `0 = q₀ ≤ ⋯ ≤ q_{k+2} = 1` and every `0 < m₁ < ⋯ < m_k < 1`, hence, by continuity of `𝒫_k`
 in the exponents, every nondecreasing `0 < m₁ ≤ ⋯ ≤ m_k ≤ 1`
 (`mixedPSpinFreeEnergy_le_parisiFunctional_of_monotone`). Along the way:
@@ -312,27 +312,27 @@ telescoped **summation by parts** valid in any ring.
 rather its recursion in the marks of `H⁰`, is at most
 `2 log 2 + Y₀(λ) − λu − (1/2)∑_{ℓ,ℓ'}∑_p n_p(θ(ρ^{ℓ,ℓ'}_{p+1}) − θ(ρ^{ℓ,ℓ'}_p))` — is proved for
 every nondecreasing `0 < n₁ ≤ ⋯ ≤ n_κ ≤ 1` and *free* top values `ρ_{κ+1}`
-(`Parisi/CoupledParisi`, `coupled_bound'` for strictly increasing exponents,
+(`Parisi/Coupled/CoupledParisi`, `coupled_bound'` for strictly increasing exponents,
 `coupled_bound'_of_monotone` in general). The two-dimensional scheme runs on one site-tree cascade over `Fin N × J` with
 per-level factors, the interpolating field on some columns and the external field `H⁰` on the
 complementary ones, independent by the block independence of `Measure.pi`
-(`Parisi/PairTreeFieldIndep`); Lemma 14.6.1 holds with an independent random external field
-(`Parisi/CoupledInterpolation`); the level bound is the generic level-bound law of
-Proposition 14.3.3 shared with Guerra's bound (`Parisi/LevelBoundLaw`); the tree is untruncated at
-fixed weights of positive finite mass (`Parisi/CoupledFixedWeights`, with the exponential moments
+(`Parisi/Tree/PairTreeFieldIndep`); Lemma 14.6.1 holds with an independent random external field
+(`Parisi/Coupled/CoupledInterpolation`); the level bound is the generic level-bound law of
+Proposition 14.3.3 shared with Guerra's bound (`Parisi/Tree/LevelBoundLaw`); the tree is untruncated at
+fixed weights of positive finite mass (`Parisi/Coupled/CoupledFixedWeights`, with the exponential moments
 of the disorder, `FiniteGibbs/GaussianFieldExpMoment`); and both endpoints are evaluated by
 Theorem 14.2.1 conditionally on the disorder and the root marks, from the joint integrability of
 `log ∑_α v_α G_θ(z_α)` in the weights, the parameter and the marks — Jensen along the branch chosen
-by the weights (`Parisi/CascadeLogIntegrable`). Talagrand's diagonal (14.137) omits the term
+by the weights (`Parisi/Tree/CascadeLogIntegrable`). Talagrand's diagonal (14.137) omits the term
 `α = γ`: the bound proved is the correct one, stronger by `(θ(1) + θ(u))(1 − n_κ)`, and leaving
 `ρ_{κ+1}` free absorbs exactly the level `n_{κ+1} = 1` of his Proposition 14.6.3, with no
 continuity argument in the `n_p`. The endpoint `Y₀` factorizes over the sites along the currying
-`(Fin N × J → ℝ) ≃ (Fin N → J → ℝ)` (`Parisi/CoupledSite`), Proposition 14.6.3 is the
+`(Fin N × J → ℝ) ≃ (Fin N → J → ℝ)` (`Parisi/Coupled/CoupledSite`), Proposition 14.6.3 is the
 specialization to Talagrand's coupling (14.155)–(14.158) with a sign `η = ±1`, with the level sum
-(14.152) and the constrained free energy (14.149) as the left-hand side (`Parisi/CoupledProp`), and
+(14.152) and the constrained free energy (14.149) as the left-hand side (`Parisi/Coupled/CoupledProp`), and
 at `λ = 0` its right-hand side is exactly `2𝒫_k(m, q)`: `Y₀(0) = 2X₀` from the raw-coordinate
 identity of Lemma 14.3.6(a), while the diagonal defect at `q_{k+1}` and the absorbed level (14.84)
-combine into the last term of the functional (`Parisi/CoupledLambdaZero`,
+combine into the last term of the functional (`Parisi/Coupled/CoupledLambdaZero`,
 `constrainedFreeEnergy_le_two_parisiFunctional`).
 
 The **`λ`-dependence of `Y₀`** rests on two new general pieces. Talagrand's tilted averages
@@ -346,7 +346,7 @@ functions with a bounded `λ`-derivative satisfying (14.4) at the point — Tala
 `Y'_p = 𝔼_p(W_p Y'_{p+1})` of (14.185) and (14.215), iterated over the levels, proved by
 differentiation under the integral sign level by level. Consequently `Y₀(λ)` is differentiable
 with `Y₀'(λ) = 𝔼_{y₀} 𝔼(W₁ ⋯ W_κ ∂_λ Y_{κ+1})` and `|Y₀'(λ)| ≤ 1`, from Talagrand's inequality
-`|ch A ch B sh λ + sh A sh B ch λ| ≤ ch A ch B ch λ + sh A sh B sh λ` (`Parisi/CoupledDeriv`,
+`|ch A ch B sh λ + sh A sh B ch λ| ≤ ch A ch B ch λ + sh A sh B sh λ` (`Parisi/Coupled/CoupledDeriv`,
 `hasDerivAt_pairSiteY₀`, `abs_pairSiteY₀'_le_one`). Proposition 14.6.3 itself no longer needs `ξ`
 even when `η = 1`: only `ξ'(η x) = η ξ'(x)` and `θ(η x) = θ(x)` enter, so odd `p`-spin models at
 `u ≥ 0` are covered.
@@ -368,7 +368,7 @@ Proposition 14.6.3 and its `λ = 0` form, and Guerra's bound (14.90) hold for ev
 `mixedPSpinFreeEnergy_le_parisiFunctional_of_monotone`); a level with exponent `n₁ = 0` is a plain
 expectation, a merging statement rather than a limit.
 
-**Lemma 14.6.5, `0 ≤ Y₀''(λ) ≤ 1`** (`Parisi/CoupledSecondDeriv`): through Theorem 14.2.1,
+**Lemma 14.6.5, `0 ≤ Y₀''(λ) ≤ 1`** (`Parisi/Coupled/CoupledSecondDeriv`): through Theorem 14.2.1,
 `Y₀(λ)` is the expectation over the root marks and the cascade of `log ∑_α v_α exp Y_{κ+1}(λ, ζ_α)`,
 and `exp Y_{κ+1}(λ) = (e^λ ch(ζ¹+ζ²) + e^{−λ} ch(ζ¹−ζ²))/2`, so by linearity of the cascade sum (a
 new general fact, `PointProcess/CascadeLinear`) `S(λ) = ∑_α v_α exp Y_{κ+1} = (e^λ P + e^{−λ} M)/2`
