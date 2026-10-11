@@ -2,17 +2,21 @@
 
 ## Evidence and scope
 
-Source inventory: 2026-09-27, after the directory reorganization. This inventory
-comes from reading current declarations, imports, and proof-hole searches; it
-does not certify a fresh Lean build. Validation commands are in [AGENTS.md](../AGENTS.md).
+Proof checks: 2026-10-11, with Lean 4.34.0-rc2. The closed-competitor, actual root
+and nonroot inner-mass U/f bridges, uniform propagated mass Taylor remainders,
+square-root MIN estimates and variance-calculus leaves compile. Axiom audits of
+213 public theorems in thirteen changed owners contain only Lean's standard
+foundations. The capstone audit still contains
+`sorryAx`; full lower-bound completion is not certified. Exact commands and
+remaining tasks are in [the plan](EDITING_PLAN.md#next-task).
 [INDEX.md](../INDEX.md) owns the declaration-to-file map; [the plan](EDITING_PLAN.md)
 owns pending tasks and source pages.
 
 A scan of Lean files under SpinGlass/Parisi finds one `sorry`, in the nondegenerate
 theorem of [ParisiLowerBound.lean](../ParisiLowerBound.lean). Other missing stages
 have no declarations yet, so counting holes understates the remaining work.
-Implemented below means a proof body is present, not an independent mathematical
-audit or a recorded successful build.
+Rows marked implemented describe earlier source inventory. Rows marked compiled
+refer to the checks recorded in the plan.
 
 | Layer | Source state | Consumer |
 | --- | --- | --- |
@@ -20,10 +24,16 @@ audit or a recorded successful build.
 | Concrete q-derivative and law-level stationarity | Implemented | Strict endpoints and mass calculus |
 | Full fixed-level MIN existence | Implemented | Mass variations and main estimate |
 | Left/right split constructors and functional identities | Implemented | Inserted-mass derivatives |
-| Left split's closed-domain membership | Implemented | Split competitor bound |
+| Both splits' closed-domain membership | Compiled | Split competitor bound |
 | Standalone analytic tools in ARISTOTLE | Leaf build and all 199 theorem axiom audits passed on 2026-09-28; see [application map](ARISTOTLE.md) | Generic inputs to the open layers below; concrete bridges pending |
-| Closed-competitor global lower bound and quantitative split comparison | Next task | Mass derivative estimates |
-| Mass derivative, U/f calculus, quantitative curvature | Open | Main-estimate cases |
+| Closed-competitor global lower bound and quantitative split comparison | Compiled | Mass derivative estimates |
+| Concrete mass derivative and field/root averaging | Compiled, including zero mass and one-sided mass endpoints | U/f calculus |
+| Initial root split, its closed-domain identities and mass derivative | Compiled | Initial-interval U/f calculus |
+| Actual suffix C4 regularity, local variance response and moments | Compiled, including zero masses and variances | Fixed-prefix calculus |
+| Fixed-prefix variance derivatives, probability-law averaging, concavity | Compiled; positive matching mass for spatial measurability after the prefix | U/f identification |
+| Root and nonroot inner-mass U/f identification, q-stationarity, f endpoints | Compiled; nonroot left endpoint uses fixed-level mass minimality | Quantitative mass variation |
+| Ordered-prefix mass Taylor remainder, actual functional specialization, root/nonroot inner-mass (14.264) | Compiled; constants depend only on the total ξ variance ceiling, including field averaging and closed endpoints | Overlap curvature |
+| Mirror outer-mass bridge, uniform spatial bounds, quantitative curvature | Open | Main-estimate cases |
 | Coupled bound, zero coupling, first derivative, Taylor control | Implemented core; final adapters pending | Main estimate |
 | Uniform main estimate, Theorem 14.5.7 | Open | Localization |
 | Pressure-gap to small constrained mass, Proposition 14.5.8 | Open; random-field transfer needs proof | Localization |
@@ -95,10 +105,16 @@ intervals, scalar variation estimates, curvature propagation, bounded-difference
 exponential moments, truncation, and generic localization/endpoint assembly.
 The [guide](ARISTOTLE.md) gives exact entry points and validation evidence.
 
-No project module currently imports this file. To consume its results, prove
-agreement with the project recursion and establish their smoothness, domination,
-continuity, and uniformity hypotheses from the existing contracts. In particular,
-single-layer split concavity still needs propagation through earlier layers;
+[ParisiMassDerivative.lean](../Variational/ParisiMassDerivative.lean) now imports
+this file. It identifies the actual Cole-Hopf mass transform, proves a Gaussian
+envelope uniform in the field, and consumes the analytic mass bounds and
+field-integral differentiation theorem. Further applications require their
+smoothness, domination, continuity, and uniformity hypotheses from the existing
+contracts. SpatialRegularity, VarianceResponse, VarianceAveraging, and
+VariancePropagation now identify the actual local quantities, discharge suffix
+regularity, and transport variance derivatives and concavity through fixed
+baseline weights and a probability-law average. The split-array and stationarity
+identifications for U/f remain open;
 bounded-field concentration still needs estimates for the actual cascade
 logarithmic product and its conditional mean; truncation still needs uniform
 law-level functional and free-energy continuity. The open-layer rows above
@@ -118,11 +134,44 @@ for fixed-count mass variations. For an insertion, the count increases: combine
 the global-infimum lower bound for that competitor with the original near-minimum.
 Full MIN alone does not compare these two counts.
 
-Variational/ParisiMVariation.lean contains both split orientations and endpoint/
-matching-mass identities. The left split's mass, overlap, and pair membership
-lemmas are present. The right constructor currently addresses nonterminal
-intervals. Reuse the functional identities; isolate endpoint admissibility and
-index conversion before the analysis.
+Variational/ParisiMVariation.lean contains both split orientations, endpoint/
+matching-mass identities, domain membership, global-infimum bounds, and
+quantitative near-minimality inequalities. It now consumes the concrete
+mass-coordinate derivative from ParisiMassRecursion.lean. The right constructor
+addresses nonterminal intervals. ParisiRootMVariation.lean covers the initial
+interval $[0,q_1]$, with mass and overlap cons constructors, domain membership,
+zero-mass and empty-interval functional identities, and the root mass derivative.
+
+The first mass derivative uses the actual suffix and preceding cascade tilt,
+then the independent root Gaussian and site-law integral. A finite first field
+moment suffices. Empty inserted intervals have zero mass derivative in either
+orientation. Uniform first-derivative bounds survive cascade transport. The
+uniform second-derivative bound currently concerns a single varied layer;
+it is not yet a Taylor remainder bound for the entire split functional.
+
+### Variance response
+
+ParisiSpatialRegularity.lean proves C4 regularity and bounded spatial derivatives
+for the actual log-cosh terminal and every finite suffix, including zero masses
+and variances. Its one-layer first/second spatial bounds are uniform in variance.
+The suffix bound used here may depend on its fixed parameters; it is not the
+book's global MIN Taylor constant.
+
+ParisiVarianceResponse.lean defines the actual local inserted-mass response and
+squared spatial moments under `coleHopfQ`. Matching masses erase the split on
+the admissible closed variance interval. The preceding cascade law is therefore
+fixed in variance. ParisiVariancePropagation.lean differentiates its response
+and first moment, then averages those identities over an arbitrary fixed
+probability law of a measurable evaluation point. Both variance endpoints are
+treated within the interval. The local zero-mass branch is covered separately
+by ParisiVarianceAveraging.lean; prefix spatial measurability currently uses a
+positive matching mass, as appropriate for nonroot strict MIN intervals.
+
+The full response has a variance-ceiling bound independent of the preceding
+level count and parameters. These results still need identification with
+`splitParisiRightMassDeriv` and `splitParisiRootMassDeriv`, the field/root nesting,
+and the q-stationary moment at zero variance. The mirror mass orientation and
+the global mass Taylor remainder also remain open.
 
 ### Concrete q-stationarity
 

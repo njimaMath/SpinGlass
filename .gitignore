@@ -53,5 +53,3 @@ lake-toolchain
 .gitignore
 
 tmp/*
-
-AGENTS.md

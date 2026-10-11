@@ -7,73 +7,101 @@ Fill the existing nondegenerate eventual lower-bound theorem in
 Follow Talagrand, Vol. II, Sections 14.5-14.10. Source status is recorded in
 [Architecture](ARCHITECTURE.md); declaration owners are in [INDEX.md](../INDEX.md).
 
-Status on 2026-09-27: full MIN, concrete q-stationarity, both split orientations,
-their functional identities, and left-split domain membership have implementations.
-The closed-competitor infimum comparison and subsequent analytic stages below
-remain open. This is a source audit, not a new build certification.
+Verified on 2026-10-11 with Lean 4.34.0-rc2: the actual root and nonroot inner-mass
+U/f bridges, mass stationarity, f endpoints, uniform propagated mass remainders,
+root/nonroot inner-mass square-root estimates, and variance calculus compile.
+Zero root mass and one-sided endpoints are included. The capstone still has its
+original `sorry`; uniform spatial/overlap estimates and the later probabilistic
+stages remain open.
 
 The standalone [ARISTOTLE analytic library](../ARISTOTLE.lean) now has checked
 proofs for the generic analytic inputs. Its [guide](ARISTOTLE.md) records what
 they establish, their validation, and how to apply them at each phase below.
-The next task remains a concrete closed-competitor comparison: the standalone
-lemmas have not yet been consumed by the project modules.
+The concrete mass modules now consume its mass-transform bounds and
+field-integral differentiation theorem. Variance response calculus now also
+has concrete operator specializations. The split-array and stationary-moment
+bridges for the inner-mass variation are now proved; the mirror outer-mass
+variation and later quantitative/probabilistic applications still need work.
 
 ## Next task
 
-Deliver a compiled lower bound for the closed functional on its entire parameter
-domain, then specialize it to the existing split. Proposed lemma names below are
-design suggestions, not declarations that already exist.
+Continue the sharp spatial recursion estimates (14.271)-(14.274), then uniform
+first-overlap separation and overlap curvature. The smallest next lemma is
+preservation of $0\le A''\le1-(A')^2$ by a Cole-Hopf layer with mass in [0,1].
+Use its actual first/second derivative formulas, Jensen and the variance term;
+the log-cosh terminal satisfies this invariant with equality. Iterate it to
+obtain $0\le A_p''\le1$ uniformly in all levels, also at zero mass/variance.
+This supplies the upper-curvature input to `Aristotle.gaussian_mass_curvature_lower`.
 
-Read only these sources initially:
+The quantitative inner-mass estimate (14.264) is now proved in
+[ParisiQuantitativeMass.lean](../Variational/ParisiQuantitativeMass.lean):
+`exists_uniform_parisiRootf_lower_bound` and
+`exists_uniform_parisiRightf_lower_bound` give $f\ge-4\sqrt{M\varepsilon}$.
+Each f is twice the actual inserted-mass derivative. M depends only on ξ and
+is selected before k, parameters, field law and tolerance. Root upper mass B
+may be arbitrarily small and includes k=0, B=1. The nonroot upper endpoint
+includes mass 1 and compares the old closed functional at `qUpdate qs p.succ u`.
+Global infimum comparison supplies near-minimality across the split dimensions;
+fixed-level minimality is used only for those endpoint comparisons.
 
-- [Minimizer/Compact.lean](../Minimizer/Compact.lean): closed functional, domain,
-  fixed-level attainment, closed/ordinary equality.
-- [Minimizer/StrictMass.lean](../Minimizer/StrictMass.lean): strict reduction of a
-  closed minimum.
-- [Minimizer/Full.lean](../Minimizer/Full.lean): exact MIN output contract.
-- [Variational/ParisiMVariation.lean](../Variational/ParisiMVariation.lean): final
-  domain-membership section and relevant split identities.
-- [ParisiInf.lean](../ParisiInf.lean) and
-  [Variational/ParisiMin.lean](../Variational/ParisiMin.lean): admissible value set
-  and its boundedness below.
+[ParisiMassPropagation.lean](../Variational/ParisiMassPropagation.lean) proves
+the full ordered-prefix Taylor estimate. The logarithmic cascade-density
+perturbation telescopes to twice the input perturbation, independent of prefix
+length. This controls changes of the transported mass derivative together with
+the centered single-layer second-mass bound. Field/root averaging requires only
+an integrable spatial shift. The earlier conditional-variance route was not
+needed. The mirror free outer mass still needs its own U/f bridge, including
+the terminal old interval of mass 1.
 
-Desired reusable conclusion, under a probability law, integrable field, and
-`TalagrandXiCondition`:
+The proved U/f bridge is
+[ParisiSplitResponse.lean](../Variational/ParisiSplitResponse.lean): root uses the
+full post-root iterate; nonroot inner mass uses `splitParisiMassRight`, prefix
+length p.val and suffix `parisiQSuffix ... p.castSucc`. Both U'(0) identities
+are derived from the actual old q-moments, with the field/root product law and
+Fubini proved. The nonroot f left endpoint is
+`parisiRightf_left_endpoint_eq_zero_of_isMinOn`; its mass stationarity is in
+[ParisiMassRecursion.lean](../Variational/ParisiMassRecursion.lean).
+
+Read [ParisiSpatialRegularity.lean](../Variational/ParisiSpatialRegularity.lean),
+the [ARISTOTLE curvature propagation section](../ARISTOTLE.lean), and book
+pp. 411-414. Quantitative q₁ separation and overlap curvature still need
+constants uniform in the chosen MIN; the current C4 suffix bound may depend on
+its levels and is not such a uniform constant.
+
+Completed declarations and checks on 2026-10-11:
+
+| Owner | Verified additions |
+| --- | --- |
+| [Minimizer/Full.lean](../Minimizer/Full.lean) | `randomFieldParisiInf_le_closedRandomFieldParisiFunctional`, `randomFieldParisiFunctional_sub_lt_closed_of_near_inf` |
+| [ParisiMVariation.lean](../Variational/ParisiMVariation.lean) | `splitParisiMassRight_mem_domain`, `splitParisiRight_mem_parameterDomain`, `randomFieldParisiInf_le_split_left`, `randomFieldParisiInf_le_split_right`, `randomFieldParisiFunctional_sub_lt_split_left_of_near_inf`, `randomFieldParisiFunctional_sub_lt_split_right_of_near_inf` |
+| [ParisiMassDerivative.lean](../Variational/ParisiMassDerivative.lean) | `hasDerivAt_coleHopf_exponent_zero`, `hasDerivAt_coleHopf_mass`, `exists_uniform_coleHopf_mass_second_derivative_bound`, `hasDerivAt_coleHopfIterate_mass_layer`, `exists_uniform_coleHopfIterate_mass_derivative_bound`, `hasDerivWithinAt_integral_integral_coleHopfIterate_mass_layer`, `exists_uniform_parisiQSuffix_mass_second_derivative_bound` |
+| [ParisiMassRecursion.lean](../Variational/ParisiMassRecursion.lean) | `closedParisiX₀_mass_update_eq`, `randomFieldParisiMassMoment`, `hasDerivWithinAt_randomFieldParisiX₀_mass_update`, `parisiMassPenalty_mass_update_eq`, `hasDerivWithinAt_closedRandomFieldParisiFunctional_mass_update` |
+| [ParisiMassRecursion.lean](../Variational/ParisiMassRecursion.lean) | `ParisiMAdmissible.eventually_mass_update`, `isLocalMin_closedRandomFieldParisiFunctional_mass_update_of_isMinOn`, `randomFieldParisiMassMoment_sub_theta_eq_zero_of_isMinOn` |
+| [ParisiMVariation.lean](../Variational/ParisiMVariation.lean) | `splitParisiLeftMassDeriv`, `splitParisiRightMassDeriv`, `hasDerivWithinAt_closedRandomFieldParisiFunctional_split_left_mass`, `hasDerivWithinAt_closedRandomFieldParisiFunctional_split_right_mass`, `splitParisiLeftMassDeriv_left_endpoint`, `splitParisiRightMassDeriv_right_endpoint` |
+| [ParisiRootMVariation.lean](../Variational/ParisiRootMVariation.lean) | Root constructors, closed-domain membership, zero-mass/empty-interval identities, global comparison, root mass derivative |
+| [ParisiRootMVariation.lean](../Variational/ParisiRootMVariation.lean) | `closedRandomFieldParisiFunctional_split_root_upper_mass`, `closedRandomFieldParisiFunctional_split_root_zero_le_upper_of_isMin` |
+| [ParisiMassPropagation.lean](../Variational/ParisiMassPropagation.lean) | Actual cascade density logarithm, uniform perturbation bound, `exists_uniform_coleHopfIterateMassDeriv_lipschitz_bound`, `exists_uniform_integral_coleHopfIterate_mass_taylor_bound` |
+| [ParisiQuantitativeMass.lean](../Variational/ParisiQuantitativeMass.lean) | Actual mass-coordinate Taylor estimate, root/nonroot upper endpoint comparisons and `exists_uniform_parisiRootf_lower_bound`, `exists_uniform_parisiRightf_lower_bound` |
+| [ParisiSpatialRegularity.lean](../Variational/ParisiSpatialRegularity.lean) | `parisiQSuffix_spatial_regular_four`, `iteratedDeriv_coleHopf_one_two_bounds` |
+| [ParisiVarianceResponse.lean](../Variational/ParisiVarianceResponse.lean) | Concrete response/moment definitions, zero-mass response, matching-mass baseline, `hasDerivAt_coleHopfIterate_split_mass_of_pos` |
+| [ParisiVarianceAveraging.lean](../Variational/ParisiVarianceAveraging.lean) | Actual suffix variance derivatives and concavity under any fixed probability law; uniform-in-variance spatial moment bounds |
+| [ParisiVariancePropagation.lean](../Variational/ParisiVariancePropagation.lean) | Actual suffix derivatives, dissipation and concavity after fixed-prefix and probability-law averages; prefix/field-independent response envelope |
+| [ParisiSplitResponse.lean](../Variational/ParisiSplitResponse.lean) | Actual root/nonroot inner-mass recursion identities, U/f normalization, variance derivatives, concavity, U'(0)=q_r, f(q_r)=f'(q_r)=0, and nonroot f(q_{r-1})=0 from fixed-level mass minimality |
+| [MeasurableParamDeriv.lean](../../../Common/Mathlib/Analysis/Calculus/MeasurableParamDeriv.lean) | Within derivative measurability from admissible difference quotients, including both endpoints |
+
+This command passed with 3542 jobs:
 
 ```text
-(ms, qs) ∈ parisiParameterDomain k
-  -> randomFieldParisiInf μh ξ
-       ≤ closedRandomFieldParisiFunctional μh ξ ms qs
+lake build Common.Mathlib.Analysis.Calculus.MeasurableParamDeriv SpinGlass.Parisi.Minimizer.QVariation.RandomField SpinGlass.Parisi.Minimizer.Full SpinGlass.Parisi.Variational.ParisiRootMVariation SpinGlass.Parisi.Variational.ParisiVariancePropagation SpinGlass.Parisi.Variational.ParisiQuantitativeMass SpinGlass.Parisi.ParisiLowerBound
 ```
 
-A short candidate proof route is available: attain a closed minimum at this k,
-reduce its redundant masses (and overlaps if needed for admissibility), identify
-its value with an ordinary admissible functional value, apply the infimum bound,
-then compare the minimum with the original competitor. Check the reduction
-signatures; do not assume an arbitrary competitor is already a strict minimum.
-Alternatively use a proved density/continuity result if it is shorter.
-
-Available generic tools are `SpinGlass.Aristotle.sInf_le_of_reduced_minimum`
-and `SpinGlass.Aristotle.lower_bound_on_closure`. The former uses the original
-minimum and membership of its value after strict reduction. After the concrete
-split comparison, `SpinGlass.Aristotle.near_minimum_competitor` supplies
-$P-\varepsilon<\Phi$. See [the application recipe](ARISTOTLE.md#closed-competitors-and-split-near-minimality)
-for exact declaration owners.
-
-Place the generic result in the minimizer layer after its required reductions;
-put split specializations in the mass-variation file. Use
-`splitParisiLeft_mem_parameterDomain` to get the split lower bound. If $P$ is the
-selected MIN value and $\Phi$ an admissible split value, combine
-$P<\mathcal P+\varepsilon$ and $\mathcal P\le\Phi$ to obtain
-$P-\varepsilon<\Phi$, and expose a weak inequality if the consumer needs one.
-
-Do not use fixed-k `IsMinOn` directly on a k+1 split. Prove the mirror split's
-admissibility when needed, respecting its nonterminal index restriction.
-
-Exit condition: a split-comparison theorem with no new assumptions about a
-derivative or optimality, consumed from the mass-variation file, and successful
-builds of the changed owner and SpinGlass.Parisi.Variational.ParisiMVariation.
-Record exact names and results here before proceeding.
+`git diff --check` passed. A proof-hole scan of SpinGlass/Parisi and Common
+found only `ParisiLowerBound.lean:44`. A temporary `lake env lean` audit of
+213 public theorems in the thirteen changed proof owners passed: all have only
+`propext`, `Classical.choice`, and `Quot.sound`. The separate capstone audit
+still reports `sorryAx`. No build blocker remains. The mathematical obligations
+are the mirror outer-mass bridge, uniform spatial/overlap curvature estimates, main estimate,
+random-field concentration transfer, localization, and interpolation comparison.
 
 ## Source lookup
 

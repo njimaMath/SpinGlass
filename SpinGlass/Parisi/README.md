@@ -6,12 +6,25 @@ the existing theorems in [ParisiLowerBound.lean](ParisiLowerBound.lean) without
 changing their claims. The reference is
 [Talagrand, Vol. II](../../Notes/Talagrand-spin-glass-II.pdf), Sections 14.5-14.10.
 
-The source inventory on 2026-09-28 has one `sorry` in this directory, in the
-nondegenerate eventual lower bound. MIN existence, concrete overlap stationarity,
-and initial split identities have implementations. Concrete recursion mass
-derivatives, the main estimate, concentration, localization, and the
-interpolation lower comparison
-remain open. The general lower bound and convergence corollaries are assembled
+The proof checks on 2026-10-11, using Lean 4.34.0-rc2, leave one `sorry` in
+this directory, in the nondegenerate eventual lower bound. Closed-competitor
+infimum comparisons, both split near-minimality inequalities, and concrete
+mass derivatives now compile. The root split and fourth-order regularity of the
+actual suffix are proved. The variance response, its squared spatial moments,
+fixed-prefix propagation, probability-law variance derivatives, and concavity
+also compile, with one-sided variance endpoints. The root and nonroot inner-mass
+responses are identified with the actual split functional. Their U/f calculus,
+q-stationarity and nonroot left endpoint from fixed-level mass minimality compile
+in [ParisiSplitResponse.lean](Variational/ParisiSplitResponse.lean).
+[ParisiMassPropagation.lean](Variational/ParisiMassPropagation.lean) proves a
+uniform Taylor remainder through the full ordered mass prefix and field average.
+[ParisiQuantitativeMass.lean](Variational/ParisiQuantitativeMass.lean) identifies
+that remainder with the actual functional and proves the root and nonroot
+inner-mass square-root estimates, including their endpoint comparisons. Their
+constants depend only on ξ and are selected before MIN parameters. The mirror
+outer-mass bridge, uniform spatial and overlap curvature estimates, main estimate,
+concentration, localization, and interpolation lower comparison remain open.
+The general lower bound and convergence corollaries are assembled
 but depend on the open theorem; this is not yet a proof of the Parisi formula.
 
 [ARISTOTLE.lean](ARISTOTLE.lean) supplies compiled standalone analytic lemmas for
@@ -43,7 +56,7 @@ validation evidence, and remaining bridges to the actual Parisi model.
 | Variational/ | Continuity, level deletion, near minima, and split variations |
 | [ParisiInf.lean](ParisiInf.lean) | Variational infimum and optimized upper bound |
 | [ParisiLowerBound.lean](ParisiLowerBound.lean) | Lower-bound target and reductions |
-| [ARISTOTLE.lean](ARISTOTLE.lean) | Mathlib-only analytic lemmas; concrete applications pending |
+| [ARISTOTLE.lean](ARISTOTLE.lean) | Mathlib-only analytic lemmas; concrete mass calculus now consumes them |
 
 Use owning modules in proof files, for example:
 
@@ -51,8 +64,9 @@ Use owning modules in proof files, for example:
 import SpinGlass.Parisi.Minimizer.Full
 ```
 
-The convenience import SpinGlass.Parisi currently excludes the capstone and
-ARISTOTLE. Import and build either leaf explicitly when using it.
+The convenience import SpinGlass.Parisi currently excludes the capstone.
+It reaches ARISTOTLE through the mass-variation modules. Build the capstone
+explicitly; successful compilation alone does not discharge its proof hole.
 
 ## External-field semantics
 

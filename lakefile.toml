@@ -1,9 +1,7 @@
 name = "SpinGlass"
 defaultTargets = ["SpinGlass", "Common"]
 
-# Keep this project's dependencies and build output under the parent
-# workspace's `.lake` directory while isolating Lean/mathlib 4.34 from the
-# root project's Lean/mathlib 4.32 environment.
+# Reuse the parent workspace's installed Lean 4.34 dependencies and mathlib cache.
 packagesDir = "../.lake/spinglass/packages"
 buildDir = "../.lake/spinglass/build"
 
@@ -14,18 +12,17 @@ relaxedAutoImplicit = false
 weak.linter.mathlibStandardSet = true
 weak.linter.style.header = false
 
-# This is a Git worktree of the already-present root mathlib repository.  It
-# shares Git objects with `.lake/packages/mathlib` and requires no second clone.
-[[require]]
-name = "mathlib"
-path = "../.lake/spinglass/packages/mathlib"
-
 # Exchangeability, the Hewitt-Savage zero-one law and de Finetti's theorem
 # used by the overlap-array development.
 [[require]]
 name = "GibbsMeasure"
 git = "https://github.com/matteo-ax/GibbsMeasure.git"
 rev = "8a158f018c55665542e071c6c0e54906f903a199"
+
+# Keep mathlib last so its shared versions override transitive requirements.
+[[require]]
+name = "mathlib"
+path = "../.lake/spinglass/packages/mathlib"
 
 [[lean_lib]]
 name = "SpinGlass"

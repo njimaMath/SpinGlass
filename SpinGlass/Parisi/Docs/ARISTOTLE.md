@@ -16,10 +16,12 @@ import SpinGlass.Parisi.ARISTOTLE
 ```
 
 Use qualified names, such as `SpinGlass.Aristotle.near_minimum_competitor`.
-No other project source currently imports this leaf, including the convenience
-module `SpinGlass.Parisi`. These results therefore provide analytic inputs;
-they do not yet discharge the concrete mass derivative, the seven main-estimate
-cases, Proposition 14.5.8, localization, or the lower-bound capstone.
+As of 2026-10-11, [ParisiMassDerivative.lean](../Variational/ParisiMassDerivative.lean)
+imports this leaf and consumes the mass-transform bounds and integral derivative
+theorem. [ParisiMassRecursion.lean](../Variational/ParisiMassRecursion.lean) identifies
+the actual closed-functional mass derivative, and ParisiMVariation consumes it
+for both insertions. The U/f calculus, seven main-estimate cases, Proposition
+14.5.8, localization, and lower-bound capstone remain open.
 The sole existing Parisi proof hole remains in
 [ParisiLowerBound.lean](../ParisiLowerBound.lean).
 
@@ -87,8 +89,10 @@ bound. Positivity of a single field moment alone does not prove that bound.
 
 ### Closed competitors and split near-minimality
 
-The next deliverable remains the concrete global-infimum comparison in
-[the plan](EDITING_PLAN.md#next-task). In
+The concrete global-infimum comparison is now
+`randomFieldParisiInf_le_closedRandomFieldParisiFunctional` in
+[Minimizer/Full.lean](../Minimizer/Full.lean), compiled on 2026-10-11. It uses
+the following reduction route. In
 [Minimizer/Compact.lean](../Minimizer/Compact.lean), use
 `exists_closedRandomFieldParisiMinimum_of_fixed_levels` to attain a minimum.
 Apply the reductions
@@ -118,21 +122,43 @@ example {P I ε Φ : ℝ} (hnear : P < I + ε) (hcompetitor : I ≤ Φ) :
 
 Fixed-level `IsMinOn` is used to compare the minimum with a competitor at the
 same level count. The global infimum compares different counts after insertion.
-Right-split admissibility must be established before applying the mirror result.
+Both split orientations now have domain membership and infimum/tolerance
+specializations in ParisiMVariation. ParisiRootMVariation now supplies the
+initial interval's constructor, identities, comparison, and mass derivative.
 
 ### Mass variations and the main estimate
 
-Identify `gaussianLayer` with the project's Cole-Hopf layer, verify the $C^4$
-and derivative bounds for the suffix recursion, and identify the two split
-quantities with the local response and moments used in (14.208)-(14.211).
-Propagate through preceding layers and prove differentiation under the
-external-field expectation using `hasDerivWithinAt_integral_Icc` with an
-integrable dominating derivative. `concaveOn_integral_weighted` applies only
-to weights fixed in the varied parameter; varying weights need further calculus.
+The mass-transform identification and first derivative propagation are now
+proved by ParisiMassDerivative and ParisiMassRecursion. The derivative bounds
+used in field averaging are independent of the realized field and require only
+a finite first moment of its law. The single-layer second-mass derivative
+bound is also specialized to the actual suffix. ParisiMassPropagation proves
+uniform full-prefix Taylor control by telescoping the logarithmic cascade-density
+perturbation for ordered masses. Its constant is independent of prefix length.
+ParisiQuantitativeMass specializes this to actual mass-coordinate updates and
+root/nonroot inner-mass split functionals, after the field/root product average.
+
+ParisiSpatialRegularity now verifies the $C^4$ and bounded-derivative hypotheses
+for the actual suffix. ParisiVarianceResponse identifies the analytic quantities
+with the actual Cole-Hopf response and moments, including zero mass.
+ParisiVarianceAveraging and ParisiVariancePropagation consume
+`hasDerivWithinAt_integral_Icc` with proved moment domination, and
+`concaveOn_integral_weighted` with the matching-mass baseline weight fixed in
+variance. Their actual-suffix specializations remove all regularity hypotheses
+from the caller. ParisiSplitResponse now identifies the actual root and nonroot
+inner-mass split arrays, field/root averages, U/f derivatives and q-stationarity.
+It proves U'(0)=q_r and f(q_r)=f'(q_r)=0. The nonroot f left endpoint follows from
+fixed-level mass stationarity in ParisiMassRecursion. The mirror outer-mass
+orientation still needs a separate bridge. The mass Taylor remainder comes from
+the separate ordered-prefix estimate, not from the variance-response envelope.
 
 For (14.264), supply `split_slope_ge_neg_sqrt` with the split near-minimum bound,
 the endpoint comparison from fixed-level minimality, and a uniform quadratic
 Taylor upper bound. Its conclusion is $s\ge-2\sqrt{M\varepsilon}$.
+The concrete root/nonroot inner-mass consumers now discharge these inputs:
+`exists_uniform_parisiRootf_lower_bound` and
+`exists_uniform_parisiRightf_lower_bound` give $f\ge-4\sqrt{M\varepsilon}$,
+since each concrete f is twice its inserted-mass derivative.
 For (14.283), `curvature_ge_of_cubic_remainder` gives
 $-c\le2\delta/\rho^2+2M\rho$.
 Taking $\delta$ of order $\sqrt{\varepsilon}$ and

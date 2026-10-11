@@ -1,4 +1,5 @@
 import SpinGlass.Parisi.Minimizer.Full
+import SpinGlass.Parisi.Variational.ParisiMassRecursion
 
 /-!
 # Inserting an overlap level for mass variations
@@ -395,5 +396,214 @@ theorem splitParisiLeft_mem_parameterDomain {k : ℕ}
       parisiParameterDomain (k + 1) :=
   ⟨splitParisiMassLeft_mem_domain hm p hmp,
     splitParisiOverlap_mem_domain hq p hu⟩
+
+/-- A right split has its inserted mass between the old interval mass and
+the next mass. The last possible next mass is the fixed endpoint `1`. -/
+theorem splitParisiMassRight_mem_domain {k : ℕ}
+    {ms : Fin k → ℝ} (hm : ms ∈ parisiMassDomain k)
+    (p : Fin k) {m : ℝ}
+    (hmp : mExt ms (p.val + 1) ≤ m ∧ m ≤ mExt ms (p.val + 2)) :
+    splitParisiMassRight ms p m ∈ parisiMassDomain (k + 1) := by
+  exact splitParisiMassLeft_mem_domain hm p.succ hmp
+
+/-- The mirror split is a closed-domain competitor on a nonterminal interval. -/
+theorem splitParisiRight_mem_parameterDomain {k : ℕ}
+    {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ}
+    (hm : ms ∈ parisiMassDomain k) (hq : qs ∈ parisiOverlapDomain k)
+    (p : Fin k) {m u : ℝ}
+    (hmp : mExt ms (p.val + 1) ≤ m ∧ m ≤ mExt ms (p.val + 2))
+    (hu : qExt qs (p.val + 1) ≤ u ∧ u ≤ qExt qs (p.val + 2)) :
+    (splitParisiMassRight ms p m, splitParisiOverlap qs p.castSucc u) ∈
+      parisiParameterDomain (k + 1) :=
+  ⟨splitParisiMassRight_mem_domain hm p hmp,
+    splitParisiOverlap_mem_domain hq p.castSucc hu⟩
+
+/-- The global variational infimum bounds the left split in (14.238), even
+when the insertion introduces zero or repeated masses or overlaps. -/
+theorem randomFieldParisiInf_le_split_left
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] {ξ : ℝ → ℝ}
+    (hμ : Integrable id μh) (hξ : TalagrandXiCondition ξ)
+    {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ}
+    (hm : ms ∈ parisiMassDomain k) (hq : qs ∈ parisiOverlapDomain k)
+    (p : Fin (k + 1)) {m u : ℝ}
+    (hmp : mExt ms p.val ≤ m ∧ m ≤ mExt ms (p.val + 1))
+    (hu : qExt qs (p.val + 1) ≤ u ∧ u ≤ qExt qs (p.val + 2)) :
+    randomFieldParisiInf μh ξ ≤
+      closedRandomFieldParisiFunctional μh ξ
+        (splitParisiMassLeft ms p m) (splitParisiOverlap qs p u) :=
+  randomFieldParisiInf_le_closedRandomFieldParisiFunctional hμ hξ
+    (splitParisiLeft_mem_parameterDomain hm hq p hmp hu)
+
+/-- The same infimum comparison for the mirror split in Section 14.7. -/
+theorem randomFieldParisiInf_le_split_right
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] {ξ : ℝ → ℝ}
+    (hμ : Integrable id μh) (hξ : TalagrandXiCondition ξ)
+    {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ}
+    (hm : ms ∈ parisiMassDomain k) (hq : qs ∈ parisiOverlapDomain k)
+    (p : Fin k) {m u : ℝ}
+    (hmp : mExt ms (p.val + 1) ≤ m ∧ m ≤ mExt ms (p.val + 2))
+    (hu : qExt qs (p.val + 1) ≤ u ∧ u ≤ qExt qs (p.val + 2)) :
+    randomFieldParisiInf μh ξ ≤
+      closedRandomFieldParisiFunctional μh ξ
+        (splitParisiMassRight ms p m) (splitParisiOverlap qs p.castSucc u) :=
+  randomFieldParisiInf_le_closedRandomFieldParisiFunctional hμ hξ
+    (splitParisiRight_mem_parameterDomain hm hq p hmp hu)
+
+/-- MIN's tolerance gives the quantitative near-minimality of every left
+split, as needed for the mass variation following (14.238). -/
+theorem randomFieldParisiFunctional_sub_lt_split_left_of_near_inf
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] {ξ : ℝ → ℝ}
+    (hμ : Integrable id μh) (hξ : TalagrandXiCondition ξ)
+    {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ} {ε : ℝ}
+    (hm : ms ∈ parisiMassDomain k) (hq : qs ∈ parisiOverlapDomain k)
+    (hnear : randomFieldParisiFunctional μh ξ ms qs < randomFieldParisiInf μh ξ + ε)
+    (p : Fin (k + 1)) {m u : ℝ}
+    (hmp : mExt ms p.val ≤ m ∧ m ≤ mExt ms (p.val + 1))
+    (hu : qExt qs (p.val + 1) ≤ u ∧ u ≤ qExt qs (p.val + 2)) :
+    randomFieldParisiFunctional μh ξ ms qs - ε <
+      closedRandomFieldParisiFunctional μh ξ
+        (splitParisiMassLeft ms p m) (splitParisiOverlap qs p u) :=
+  randomFieldParisiFunctional_sub_lt_closed_of_near_inf hμ hξ hnear
+    (splitParisiLeft_mem_parameterDomain hm hq p hmp hu)
+
+/-- The quantitative near-minimality inequality for the right split. -/
+theorem randomFieldParisiFunctional_sub_lt_split_right_of_near_inf
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] {ξ : ℝ → ℝ}
+    (hμ : Integrable id μh) (hξ : TalagrandXiCondition ξ)
+    {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ} {ε : ℝ}
+    (hm : ms ∈ parisiMassDomain k) (hq : qs ∈ parisiOverlapDomain k)
+    (hnear : randomFieldParisiFunctional μh ξ ms qs < randomFieldParisiInf μh ξ + ε)
+    (p : Fin k) {m u : ℝ}
+    (hmp : mExt ms (p.val + 1) ≤ m ∧ m ≤ mExt ms (p.val + 2))
+    (hu : qExt qs (p.val + 1) ≤ u ∧ u ≤ qExt qs (p.val + 2)) :
+    randomFieldParisiFunctional μh ξ ms qs - ε <
+      closedRandomFieldParisiFunctional μh ξ
+        (splitParisiMassRight ms p m) (splitParisiOverlap qs p.castSucc u) :=
+  randomFieldParisiFunctional_sub_lt_closed_of_near_inf hμ hξ hnear
+    (splitParisiRight_mem_parameterDomain hm hq p hmp hu)
+
+/-- Updating the freely inserted mass agrees with reinserting its new value. -/
+theorem update_splitParisiMassLeft {k : ℕ} (ms : Fin k → ℝ)
+    (p : Fin (k + 1)) (a b : ℝ) :
+    Function.update (splitParisiMassLeft ms p a) p b = splitParisiMassLeft ms p b := by
+  funext i
+  by_cases hi : i = p
+  · subst i
+    simp only [Function.update_self, splitParisiMassLeft, Fin.insertNth_apply_same]
+  · obtain ⟨j, rfl⟩ := Fin.exists_succAbove_eq hi
+    rw [Function.update_of_ne (Fin.succAbove_ne p j)]
+    simp only [splitParisiMassLeft, Fin.insertNth_apply_succAbove]
+
+/-- Updating the inserted mirror mass agrees with the mirror constructor. -/
+theorem update_splitParisiMassRight {k : ℕ} (ms : Fin k → ℝ)
+    (p : Fin k) (a b : ℝ) :
+    Function.update (splitParisiMassRight ms p a) p.succ b = splitParisiMassRight ms p b :=
+  update_splitParisiMassLeft ms p.succ a b
+
+/-- Inserting a mass leaves all preceding mass coordinates unchanged. -/
+theorem splitParisiMassLeft_apply_of_lt {k : ℕ} (ms : Fin k → ℝ)
+    (p : Fin (k + 1)) (m : ℝ) {i : Fin (k + 1)} (hi : i < p) :
+    splitParisiMassLeft ms p m i = ms ⟨i.val, by omega⟩ := by
+  unfold splitParisiMassLeft
+  rw [Fin.insertNth_apply_below hi]
+  simp only [eq_rec_constant]
+  rfl
+
+/-- The concrete derivative of the left inserted-mass functional. Its moment
+uses the actual prefix cascade, suffix recursion, and field expectation. -/
+noncomputable def splitParisiLeftMassDeriv (μh : Measure ℝ) (ξ : ℝ → ℝ) {k : ℕ}
+    (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (p : Fin (k + 1)) (u m : ℝ) : ℝ :=
+  randomFieldParisiMassMoment μh ξ (splitParisiMassLeft ms p 0)
+    (splitParisiOverlap qs p u) p m - (1 / 2) *
+      (parisiTheta ξ (qExt (splitParisiOverlap qs p u) (p.val + 2)) -
+        parisiTheta ξ (qExt (splitParisiOverlap qs p u) (p.val + 1)))
+
+/-- Mass differentiation of the left split, valid at both endpoints of `[0,1]`.
+This is a concrete version of the inserted variation (14.230), with no
+derivative hypothesis and no exponential moment assumption on the field. -/
+theorem hasDerivWithinAt_closedRandomFieldParisiFunctional_split_left_mass
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] (hμ : Integrable id μh)
+    (ξ : ℝ → ℝ) {k : ℕ} (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ)
+    (hpos : ∀ i, 0 < ms i) (hle : ∀ i, ms i ≤ 1)
+    (p : Fin (k + 1)) (u : ℝ) {m : ℝ} (hm : m ∈ Set.Icc (0 : ℝ) 1) :
+    HasDerivWithinAt
+      (fun b => closedRandomFieldParisiFunctional μh ξ
+        (splitParisiMassLeft ms p b) (splitParisiOverlap qs p u))
+      (splitParisiLeftMassDeriv μh ξ ms qs p u m) (Set.Icc (0 : ℝ) 1) m := by
+  have hpref (i : Fin p.val) :
+      splitParisiMassLeft ms p 0 ⟨i.val, by omega⟩ = ms ⟨i.val, by omega⟩ :=
+    splitParisiMassLeft_apply_of_lt ms p 0 (by exact i.isLt)
+  have hd := hasDerivWithinAt_closedRandomFieldParisiFunctional_mass_update hμ ξ
+    (splitParisiMassLeft ms p 0) (splitParisiOverlap qs p u) p
+    (fun i => by rw [hpref i]; exact hpos _)
+    (fun i => by rw [hpref i]; exact hle _) hm
+  simpa only [update_splitParisiMassLeft, splitParisiLeftMassDeriv] using hd
+
+/-- The concrete derivative of the mirror inserted-mass functional. -/
+noncomputable def splitParisiRightMassDeriv (μh : Measure ℝ) (ξ : ℝ → ℝ) {k : ℕ}
+    (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (p : Fin k) (u m : ℝ) : ℝ :=
+  randomFieldParisiMassMoment μh ξ (splitParisiMassRight ms p 0)
+    (splitParisiOverlap qs p.castSucc u) p.succ m - (1 / 2) *
+      (parisiTheta ξ (qExt (splitParisiOverlap qs p.castSucc u) (p.val + 3)) -
+        parisiTheta ξ (qExt (splitParisiOverlap qs p.castSucc u) (p.val + 2)))
+
+/-- Mass differentiation of the mirror split, including one-sided zero-mass
+and unit-mass endpoints. The original index remains nonterminal. -/
+theorem hasDerivWithinAt_closedRandomFieldParisiFunctional_split_right_mass
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] (hμ : Integrable id μh)
+    (ξ : ℝ → ℝ) {k : ℕ} (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ)
+    (hpos : ∀ i, 0 < ms i) (hle : ∀ i, ms i ≤ 1)
+    (p : Fin k) (u : ℝ) {m : ℝ} (hm : m ∈ Set.Icc (0 : ℝ) 1) :
+    HasDerivWithinAt
+      (fun b => closedRandomFieldParisiFunctional μh ξ
+        (splitParisiMassRight ms p b) (splitParisiOverlap qs p.castSucc u))
+      (splitParisiRightMassDeriv μh ξ ms qs p u m) (Set.Icc (0 : ℝ) 1) m := by
+  have hpref (i : Fin p.succ.val) :
+      splitParisiMassRight ms p 0 ⟨i.val, by omega⟩ = ms ⟨i.val, by omega⟩ :=
+    splitParisiMassLeft_apply_of_lt ms p.succ 0 (by exact i.isLt)
+  have hd := hasDerivWithinAt_closedRandomFieldParisiFunctional_mass_update hμ ξ
+    (splitParisiMassRight ms p 0) (splitParisiOverlap qs p.castSucc u) p.succ
+    (fun i => by rw [hpref i]; exact hpos _)
+    (fun i => by rw [hpref i]; exact hle _) hm
+  simpa only [update_splitParisiMassRight, splitParisiRightMassDeriv,
+    Fin.val_succ, Nat.add_assoc] using hd
+
+/-- At the empty left subinterval, the inserted-mass derivative vanishes.
+This is the endpoint identity for the left orientation of (14.230). -/
+theorem splitParisiLeftMassDeriv_left_endpoint
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] (hμ : Integrable id μh)
+    (ξ : ℝ → ℝ) {k : ℕ} (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ)
+    (hpos : ∀ i, 0 < ms i) (hle : ∀ i, ms i ≤ 1)
+    (p : Fin (k + 1)) {m : ℝ} (hm : m ∈ Set.Icc (0 : ℝ) 1) :
+    splitParisiLeftMassDeriv μh ξ ms qs p (qs p) m = 0 := by
+  have hd := hasDerivWithinAt_closedRandomFieldParisiFunctional_split_left_mass
+    hμ ξ ms qs hpos hle p (qs p) hm
+  have heq : (fun b => closedRandomFieldParisiFunctional μh ξ
+      (splitParisiMassLeft ms p b) (splitParisiOverlap qs p (qs p))) =
+      fun _ : ℝ => closedRandomFieldParisiFunctional μh ξ ms qs :=
+    funext (closedRandomFieldParisiFunctional_split_left_endpoint μh ms qs p)
+  rw [heq] at hd
+  exact UniqueDiffWithinAt.eq_deriv (Set.Icc (0 : ℝ) 1)
+    (uniqueDiffOn_Icc zero_lt_one m hm) hd
+    (hasDerivAt_const m (closedRandomFieldParisiFunctional μh ξ ms qs)).hasDerivWithinAt
+
+/-- At the empty right subinterval, the mirror inserted-mass derivative
+vanishes, including one-sided endpoint masses. -/
+theorem splitParisiRightMassDeriv_right_endpoint
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] (hμ : Integrable id μh)
+    (ξ : ℝ → ℝ) {k : ℕ} (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ)
+    (hpos : ∀ i, 0 < ms i) (hle : ∀ i, ms i ≤ 1)
+    (p : Fin k) {m : ℝ} (hm : m ∈ Set.Icc (0 : ℝ) 1) :
+    splitParisiRightMassDeriv μh ξ ms qs p (qs p.succ) m = 0 := by
+  have hd := hasDerivWithinAt_closedRandomFieldParisiFunctional_split_right_mass
+    hμ ξ ms qs hpos hle p (qs p.succ) hm
+  have heq : (fun b => closedRandomFieldParisiFunctional μh ξ
+      (splitParisiMassRight ms p b) (splitParisiOverlap qs p.castSucc (qs p.succ))) =
+      fun _ : ℝ => closedRandomFieldParisiFunctional μh ξ ms qs :=
+    funext (closedRandomFieldParisiFunctional_split_right_endpoint_any_mass μh ms qs p)
+  rw [heq] at hd
+  exact UniqueDiffWithinAt.eq_deriv (Set.Icc (0 : ℝ) 1)
+    (uniqueDiffOn_Icc zero_lt_one m hm) hd
+    (hasDerivAt_const m (closedRandomFieldParisiFunctional μh ξ ms qs)).hasDerivWithinAt
 
 end SpinGlass

@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Update the pinned Mathlib revision and the matching Lean toolchain.
-#
-# Mathlib is pinned by `rev` in lakefile.toml, so the toolchain must come from *that* revision,
-# not from Mathlib master: taking master's `lean-toolchain` would desync the compiler from the
-# pinned Mathlib and break the build.
+# Synchronize with the installed parent workspace; update mathlib there first.
+PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+WORKSPACE_ROOT="$(cd -- "$PROJECT_ROOT/.." && pwd)"
+MATHLIB_DIR="$WORKSPACE_ROOT/.lake/packages/mathlib"
 
-REV="$(sed -n 's/^rev = "\(.*\)"$/\1/p' lakefile.toml | head -1)"
-if [ -z "$REV" ]; then
-  echo "no 'rev' pin found in lakefile.toml" >&2
+if [ ! -f "$MATHLIB_DIR/lean-toolchain" ]; then
+  echo "shared mathlib is missing: $MATHLIB_DIR" >&2
   exit 1
 fi
 
-echo "Pinned Mathlib revision: $REV"
-curl -fsSL "https://raw.githubusercontent.com/leanprover-community/mathlib4/${REV}/lean-toolchain" \
-  -o lean-toolchain
-lake update
-lake exe cache get
+if [ "$(tr -d '\r\n' < "$WORKSPACE_ROOT/lean-toolchain")" != \
+     "$(tr -d '\r\n' < "$MATHLIB_DIR/lean-toolchain")" ]; then
+  echo "parent workspace and shared mathlib toolchains differ" >&2
+  exit 1
+fi
+
+cd -- "$PROJECT_ROOT"
+cp "$WORKSPACE_ROOT/lean-toolchain" lean-toolchain
+MATHLIB_NO_CACHE_ON_UPDATE=1 lake --keep-toolchain update mathlib
