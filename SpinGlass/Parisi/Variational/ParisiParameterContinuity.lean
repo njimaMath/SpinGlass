@@ -1,4 +1,5 @@
-import SpinGlass.Parisi.Minimizer.QVariation.RandomField
+import SpinGlass.Parisi.Minimizer.QVariation.Recursion
+import SpinGlass.Parisi.Field.RandomFieldFunctional
 import Mathlib.Analysis.Calculus.Deriv.Slope
 
 /-!

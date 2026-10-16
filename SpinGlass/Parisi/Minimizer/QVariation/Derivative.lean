@@ -693,18 +693,6 @@ theorem parisiFunctional_qUpdate_eq (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
   unfold parisiQConst
   ring
 
-/-- `θ'(q) = q ξ''(q)`. -/
-theorem hasDerivAt_parisiTheta {ξ : ℝ → ℝ} {q ξ₂ : ℝ}
-    (hξ : HasDerivAt ξ (deriv ξ q) q)
-    (hξ' : HasDerivAt (deriv ξ) ξ₂ q) :
-    HasDerivAt (parisiTheta ξ) (q * ξ₂) q := by
-  unfold parisiTheta
-  have hfun : id * deriv ξ - ξ = fun x => x * deriv ξ x - ξ x := by
-    rfl
-  rw [← hfun]
-  simpa only [id_eq, one_mul, mul_one, add_sub_cancel_left] using
-    ((hasDerivAt_id q).mul hξ').sub hξ
-
 /-- Talagrand's (14.220).
 
 Assume the `q_{r+1}`-derivative of `X₀` has already been propagated through the preceding

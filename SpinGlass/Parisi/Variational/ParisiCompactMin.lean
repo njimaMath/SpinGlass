@@ -1,6 +1,7 @@
 import SpinGlass.Parisi.Variational.ParisiMin
 import SpinGlass.Parisi.Variational.ParisiParameterContinuity
 import SpinGlass.Parisi.Variational.ParisiLevelReduction
+import SpinGlass.Parisi.Minimizer.QVariation.RandomField
 
 /-!
 # Compact overlap minimization of near-optimal parameter lists

@@ -60,8 +60,23 @@ lemma abs_parisiLogCoshTerminalDeriv2_le_one (h x : ℝ) :
   rw [parisiLogCoshTerminalDeriv2, abs_of_nonneg hnonneg]
   nlinarith [sq_nonneg (Real.tanh (h + x))]
 
-def coleHopfIterate_logCosh_regular {j : ℕ} (ms : Fin j → ℝ)
-    (vs : Fin j → ℝ≥0) (h : ℝ) (hpos : ∀ i, 0 < ms i) :=
+/-- Positive-mass log-cosh iterates have bounded first and second spatial derivatives. -/
+theorem coleHopfIterate_logCosh_regular {j : ℕ} (ms : Fin j → ℝ)
+    (vs : Fin j → ℝ≥0) (h : ℝ) (hpos : ∀ i, 0 < ms i) :
+    (∀ x, HasDerivAt (coleHopfIterate j ms vs (parisiLogCoshTerminal h))
+      (coleHopfIterateDeriv j ms vs (parisiLogCoshTerminal h)
+        (parisiLogCoshTerminalDeriv h) x) x) ∧
+    ∃ C : ℝ,
+      (∀ x, HasDerivAt (coleHopfIterateDeriv j ms vs (parisiLogCoshTerminal h)
+          (parisiLogCoshTerminalDeriv h))
+        (coleHopfIterateDeriv2 j ms vs (parisiLogCoshTerminal h)
+          (parisiLogCoshTerminalDeriv h) (parisiLogCoshTerminalDeriv2 h) x) x) ∧
+      Continuous (coleHopfIterateDeriv2 j ms vs (parisiLogCoshTerminal h)
+        (parisiLogCoshTerminalDeriv h) (parisiLogCoshTerminalDeriv2 h)) ∧
+      (∀ x, |coleHopfIterateDeriv j ms vs (parisiLogCoshTerminal h)
+        (parisiLogCoshTerminalDeriv h) x| ≤ 1) ∧
+      ∀ x, |coleHopfIterateDeriv2 j ms vs (parisiLogCoshTerminal h)
+        (parisiLogCoshTerminalDeriv h) (parisiLogCoshTerminalDeriv2 h) x| ≤ C :=
   coleHopfIterate_deriv_regular ms vs
     (hasDerivAt_parisiLogCoshTerminal h) (hasDerivAt_parisiLogCoshTerminalDeriv h)
     (continuous_parisiLogCoshTerminalDeriv2 h)
@@ -131,7 +146,7 @@ lemma logCoshRec_eq_coleHopfIterate_terminal_zero {j : ℕ} (ms : Fin j → ℝ)
 
 /-- Translating the external field translates the spatial derivative of the recursion. -/
 theorem coleHopfIterateDeriv_parisiLogCoshTerminal_translate {j : ℕ}
-    (ms : Fin j → ℝ) (vs : Fin j → ℝ≥0) (hpos : ∀ i, 0 < ms i) (h : ℝ) :
+    (ms : Fin j → ℝ) (vs : Fin j → ℝ≥0) (_hpos : ∀ i, 0 < ms i) (h : ℝ) :
     coleHopfIterateDeriv j ms vs (parisiLogCoshTerminal h)
         (parisiLogCoshTerminalDeriv h) 0 =
       coleHopfIterateDeriv j ms vs (parisiLogCoshTerminal 0)
@@ -184,19 +199,8 @@ theorem coleHopfIterateDeriv_parisiLogCoshTerminal_ne_zero {j : ℕ}
     exact logCoshRec_neg_local ms vs a
   have hBzero : B' 0 = 0 := by
     have hcomp : HasDerivAt (fun x => B (-x)) (-B' 0) 0 := by
-      have hneg := (hasDerivAt_id (0 : ℝ)).neg
-      change HasDerivAt (fun x : ℝ => -x) (-1) 0 at hneg
-      have hraw := (hB (-0)).comp 0 hneg
-      have hfunneg :
-          (coleHopfIterate j ms vs (parisiLogCoshTerminal 0) ∘ Neg.neg) =
-            fun x : ℝ => B (-x) := by rfl
-      rw [hfunneg] at hraw
-      have hdraw :
-          coleHopfIterateDeriv j ms vs (parisiLogCoshTerminal 0)
-              (parisiLogCoshTerminalDeriv 0) (-0) * (-1) = -B' 0 := by
-        simp [B']
-      rw [hdraw] at hraw
-      exact hraw
+      simpa only [Function.comp_def, neg_zero, mul_neg_one] using
+        (hB (-0)).comp 0 (hasDerivAt_id (0 : ℝ)).neg
     have hfun : (fun x => B (-x)) = B := funext hBeven
     rw [hfun] at hcomp
     have hu := HasDerivAt.unique hcomp (hB 0)
@@ -209,50 +213,8 @@ theorem coleHopfIterateDeriv_parisiLogCoshTerminal_ne_zero {j : ℕ}
     · have hlt := hBsm hhpos
       rw [hBzero] at hlt
       exact ne_of_gt hlt
-  obtain ⟨hAh, C', hAh', hAh''c, hAh'b, hAh''b⟩ :=
-    coleHopfIterate_logCosh_regular ms vs h hpos
-  have htranslate : coleHopfIterate j ms vs (parisiLogCoshTerminal h) =
-      fun x => B (h + x) := by
-    funext x
-    calc
-      coleHopfIterate j ms vs (parisiLogCoshTerminal h) x =
-          parisiRec j ms (fun p => gaussianReal 0 (vs p))
-            (fun zs => parisiLogCoshTerminal h (x + ∑ p, zs p)) :=
-        (parisiRec_gaussian_comp_add_sum (L := 1) ms vs hpos
-          (measurable_of_hasDerivAt (hasDerivAt_parisiLogCoshTerminal h))
-          (fun y z => by simpa only [one_mul] using
-            abs_parisiLogCoshTerminal_sub_le h y z) x).symm
-      _ = parisiRec j ms (fun p => gaussianReal 0 (vs p))
-            (fun zs => parisiLogCoshTerminal 0 (h + x + ∑ p, zs p)) := by
-        congr 1
-        funext zs
-        unfold parisiLogCoshTerminal
-        apply congrArg Real.log
-        apply congrArg Real.cosh
-        ring
-      _ = coleHopfIterate j ms vs (parisiLogCoshTerminal 0) (h + x) :=
-        parisiRec_gaussian_comp_add_sum (L := 1) ms vs hpos
-          (measurable_of_hasDerivAt (hasDerivAt_parisiLogCoshTerminal 0))
-          (fun y z => by simpa only [one_mul] using
-            abs_parisiLogCoshTerminal_sub_le 0 y z) (h + x)
-      _ = B (h + x) := rfl
-  have hright : HasDerivAt (fun x => B (h + x)) (B' h) 0 := by
-    have hadd : HasDerivAt (fun x : ℝ => h + x) 1 0 := by
-      simpa using (hasDerivAt_id (0 : ℝ)).const_add h
-    have hraw := (hB (h + 0)).comp 0 hadd
-    have hfunadd :
-        (coleHopfIterate j ms vs (parisiLogCoshTerminal 0) ∘ HAdd.hAdd h) =
-          fun x : ℝ => B (h + x) := by rfl
-    rw [hfunadd] at hraw
-    have hdraw :
-        coleHopfIterateDeriv j ms vs (parisiLogCoshTerminal 0)
-            (parisiLogCoshTerminalDeriv 0) (h + 0) * 1 = B' h := by
-      simp [B']
-    rw [hdraw] at hraw
-    exact hraw
-  rw [← htranslate] at hright
-  have heq := HasDerivAt.unique (hAh 0) hright
-  rwa [heq]
+  rw [coleHopfIterateDeriv_parisiLogCoshTerminal_translate ms vs hpos h]
+  exact hB'h
 
 end
 

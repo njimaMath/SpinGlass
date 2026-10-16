@@ -1,5 +1,7 @@
 import SpinGlass.Parisi.Minimizer.QVariation.Recursion
-import SpinGlass.Parisi.ARISTOTLE
+import SpinGlass.Parisi.Analytic.IntegralDifferentiation
+import SpinGlass.Parisi.Analytic.Mass.Bounds
+import SpinGlass.Parisi.Analytic.Taylor
 import Common.Mathlib.Analysis.Calculus.MeasurableParamDeriv
 import Common.Mathlib.Probability.PointProcess.CascadeColeHopf
 

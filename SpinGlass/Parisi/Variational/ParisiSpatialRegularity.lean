@@ -1,4 +1,6 @@
+import SpinGlass.Parisi.Analytic.Lipschitz
 import SpinGlass.Parisi.Variational.ParisiMassDerivative
+import SpinGlass.Parisi.Analytic.Gaussian.Split
 
 /-!
 # Spatial regularity for the concrete Parisi recursion

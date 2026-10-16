@@ -1,72 +1,126 @@
 # Parisi formula formalization
 
-This directory develops the finite-volume Parisi functional, the Guerra upper
-bound, and Talagrand's Chapter 14 route to the lower bound. The goal is to finish
-the existing theorems in [ParisiLowerBound.lean](ParisiLowerBound.lean) without
-changing their claims. The reference is
-[Talagrand, Vol. II](../../Notes/Talagrand-spin-glass-II.pdf), Sections 14.5-14.10.
+This directory formalizes the finite-volume Parisi functional, the Guerra upper
+bound, and Talagrand's Chapter 14 lower bound. The four theorems in
+[ParisiLowerBound.lean](ParisiLowerBound.lean) are complete, with their original
+statements and field, profile and covariance assumptions preserved. The reference
+is [Talagrand, Vol. II](../../Notes/Talagrand-spin-glass-II.pdf), Sections 14.5-14.10.
 
-The proof checks on 2026-10-11, using Lean 4.34.0-rc2, leave one `sorry` in
-this directory, in the nondegenerate eventual lower bound. Closed-competitor
-infimum comparisons, both split near-minimality inequalities, and concrete
-mass derivatives now compile. The root split and fourth-order regularity of the
-actual suffix are proved. The variance response, its squared spatial moments,
-fixed-prefix propagation, probability-law variance derivatives, and concavity
-also compile, with one-sided variance endpoints. The root and nonroot inner-mass
-responses are identified with the actual split functional. Their U/f calculus,
-q-stationarity and nonroot left endpoint from fixed-level mass minimality compile
-in [ParisiSplitResponse.lean](Variational/ParisiSplitResponse.lean).
-[ParisiMassPropagation.lean](Variational/ParisiMassPropagation.lean) proves a
-uniform Taylor remainder through the full ordered mass prefix and field average.
-[ParisiQuantitativeMass.lean](Variational/ParisiQuantitativeMass.lean) identifies
-that remainder with the actual functional and proves the root and nonroot
-inner-mass square-root estimates, including their endpoint comparisons. Their
-constants depend only on ξ and are selected before MIN parameters. The mirror
-outer-mass bridge, uniform spatial and overlap curvature estimates, main estimate,
-concentration, localization, and interpolation lower comparison remain open.
-The general lower bound and convergence corollaries are assembled
-but depend on the open theorem; this is not yet a proof of the Parisi formula.
-
-[ARISTOTLE.lean](ARISTOTLE.lean) supplies compiled standalone analytic lemmas for
-mass and Gaussian split calculus, quantitative variations, field truncation,
-bounded differences, localization, and endpoint arguments. Its
-[status and application guide](Docs/ARISTOTLE.md) records the hypotheses,
-validation evidence, and remaining bridges to the actual Parisi model.
+The lower-bound proof proceeds through strict MIN parameters, the coupled main
+estimate, concentration, overlap localization, the exact cascade interpolation
+identity, and Gronwall comparison. Field truncation retains the original finite
+second moment assumption. The convergence and liminf corollaries keep the
+additional assumptions required by the existing Guerra upper-bound API.
 
 ## Start here
 
-| Need | Document |
+| Need | Entry point |
 | --- | --- |
-| Agent rules and validation | [AGENTS.md](AGENTS.md) |
-| Find a declaration or module | [INDEX.md](INDEX.md) |
-| Dependencies and current evidence | [Architecture](Docs/ARCHITECTURE.md) |
-| Continue with a bounded task | [Editing plan](Docs/EDITING_PLAN.md#next-task) |
-| Use the standalone analytic lemmas | [ARISTOTLE guide](Docs/ARISTOTLE.md) |
+| Import the complete development | `import SpinGlass.Parisi` |
+| Apply the lower bound or convergence theorem | [ParisiLowerBound.lean](ParisiLowerBound.lean) |
+| Find an exact declaration owner | [INDEX.md](INDEX.md) |
+| Use generic analytic tools | [Analytic module guide](Docs/ANALYTIC.md) |
+| Check mathematical and editing contracts | [AGENTS.md](AGENTS.md) |
+| Understand dependencies | [Architecture](Docs/ARCHITECTURE.md) |
+| Review validation and maintenance work | [Editing plan](Docs/EDITING_PLAN.md#next-task) |
+
+Proof leaves import their declaration owners directly, for example:
+
+```lean
+import SpinGlass.Parisi.Minimizer.Full
+import SpinGlass.Parisi.Analytic.Mass.Bounds
+```
+
+[Analytic.lean](Analytic.lean) imports the generic analytic topic modules. The
+former `ARISTOTLE.lean` import is replaced by `SpinGlass.Parisi.Analytic`; all 215
+original analytic declaration names and the `SpinGlass.Aristotle` namespaces
+remain unchanged. Proof leaves import the topic that owns their declaration.
+
+Follow the [minimal API and milestone review rules](AGENTS.md#minimal-api-and-proof-obligations)
+before opening a PR. Review new objects and properties against Mathlib and the
+existing SpinGlass/Common layers, and verify theorem strength against the source.
+The [consolidation backlog](Docs/EDITING_PLAN.md#consolidation-backlog) records
+specific candidates; the earlier name-preservation audit was a reorganization
+check and does not settle those mathematical API questions.
+
+The [2026-10-16 shared API refinement](Docs/EDITING_PLAN.md#shared-api-refinement)
+moves generic Cole-Hopf translations and array concatenation to Common, derives
+full-domain derivative measurability from its within-domain theorem, and
+simplifies the concrete log-cosh nonvanishing proof. Shared declarations now
+live in `ProbabilityTheory`; their exact owners are in the index.
+
+Keep edits focused here, with generic API moves and necessary consumer updates
+as described in [AGENTS.md](AGENTS.md#work-efficiently). The local
+[.parisi-lean.ps1](.parisi-lean.ps1) build wrapper supports working here and runs
+Lake from the repository root with the existing shared cache.
 
 ## Module layout
 
 | Directory or file | Responsibility |
 | --- | --- |
-| Tree/ | Gaussian tree fields, branches, pair levels, and cascade limits |
+| [Analytic.lean](Analytic.lean), Analytic/ | Mathlib-only analytic tools, grouped by mathematical topic |
+| Analytic/Mass/ | Mass transform definitions, derivatives and estimates |
+| Analytic/Gaussian/ | Gaussian integrability, differentiation, curvature and split responses |
+| Analytic/Heat/ | Heat operator, Taylor estimates, backward derivatives, jets and split identities |
+| Tree/ | Gaussian tree fields, branches, pair levels and cascade limits |
 | Guerra/ | One-copy interpolation and the upper bound |
-| Coupled/ | Two-copy interpolation, coupling bounds, and derivatives |
-| Field/ | I.i.d. field laws, averaged functionals, and field continuity |
+| Field/ | I.i.d. field laws, moment assumptions, averaged functionals and continuity |
 | Minimizer/ | Closed-domain compact minima and strict MIN extraction |
 | Minimizer/QVariation/ | Concrete overlap derivatives and stationarity |
-| Variational/ | Continuity, level deletion, near minima, and split variations |
+| Variational/ | Parameter continuity, level deletion, near minima and split variations |
+| Coupled/ | Two-copy comparisons, coupling gains and the uniform main estimate |
+| Concentration/ | Gaussian and bounded-field fluctuations of physical pressures and masses |
+| Localization/ | Overlap partitions, meeting-mass localization and second moments |
+| Interpolation/ | Exact finite/cascade remainder identities, averaging and lower comparison |
 | [ParisiInf.lean](ParisiInf.lean) | Variational infimum and optimized upper bound |
-| [ParisiLowerBound.lean](ParisiLowerBound.lean) | Lower-bound target and reductions |
-| [ARISTOTLE.lean](ARISTOTLE.lean) | Mathlib-only analytic lemmas; concrete mass calculus now consumes them |
+| [ParisiLowerBound.lean](ParisiLowerBound.lean) | Eventual lower bounds, convergence and liminf |
 
-Use owning modules in proof files, for example:
+[Field/FieldMoments.lean](Field/FieldMoments.lean) owns
+`NondegenerateExternalFieldLaw` and its elementary consequences, independently
+of overlap differentiation. The compact-minimization layer uses parameter and
+recursion owners; strict mass extraction imports stationarity explicitly.
+Shared finite-gap and overlap-deletion lemmas keep the coupled and minimizer
+proofs focused on their mathematical comparisons.
 
-```lean
-import SpinGlass.Parisi.Minimizer.Full
+## Validation
+
+The 2026-10-16 refinement passed the complete project, analytic library and
+lower-bound capstone build with 3863 jobs. The transitive foundation audit of
+fifteen affected public helpers and all four capstone theorems uses only
+`propext`, `Classical.choice` and `Quot.sound`. The changed Lean owners have no
+warnings; existing warnings elsewhere remain. Exact commands and results are
+in [the maintenance record](Docs/EDITING_PLAN.md#shared-api-refinement).
+
+The complete repository, analytic library and capstone build passed on
+2026-10-14 with 3863 jobs, covering all 311 Parisi modules present at that time. The source
+review preserves all 215 analytic declaration names, namespaces, normalized
+signatures and complete proof or definition bodies. The foundation audit also
+passed for all 2,874 public Parisi declarations, including the four capstone
+theorems, with only standard Lean foundations and no errors. Full results are
+recorded in the editing plan.
+
+Before the analytic filename refinement, the complete repository and capstone
+build passed on 2026-10-13 with 3860 jobs, covering all then-current 308 Parisi
+modules. All 2,874 public source declarations passed the standard-foundation
+axiom audit. That record describes the preceding source state.
+Run from the repository root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File SpinGlass/Parisi/.parisi-lean.ps1 build SpinGlass Common SpinGlass.Parisi.Analytic SpinGlass.Parisi.ParisiLowerBound
+git diff --check
+rg -n '\b(sorry|admit|axiom|unsafe)\b' SpinGlass/Parisi --glob '*.lean'
 ```
 
-The convenience import SpinGlass.Parisi currently excludes the capstone.
-It reaches ARISTOTLE through the mass-variation modules. Build the capstone
-explicitly; successful compilation alone does not discharge its proof hole.
+Or, from `SpinGlass/Parisi/`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ./.parisi-lean.ps1 build SpinGlass.Parisi.ParisiLowerBound
+```
+
+Compilation, source scans and transitive `#print axioms` checks serve different
+purposes. The latest commands and results are recorded in
+[the editing plan](Docs/EDITING_PLAN.md#next-task). Earlier proof milestones and
+validation records remain there; they do not describe open proof obligations.
 
 ## External-field semantics
 

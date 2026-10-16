@@ -15,21 +15,22 @@ Shortcut tags at the start of a query have the following meanings.
 - `[REPHRASE]`: rewrite the input as a precise, self-contained research-level problem statement;
   list assumptions, define symbols, and add only minimal standard assumptions.
 
-The goal is to fill in the `sorry`s in `SpinGlass/Parisi/ParisiLowerBound.lean` without changing any claims therein.
+The four public claims in `SpinGlass/Parisi/ParisiLowerBound.lean` are complete.
+Preserve their statements and field, profile and covariance assumptions. Do not
+add proof holes, project axioms, unsafe declarations or stronger hypotheses.
+`SpinGlass.lean` imports the complete Parisi development through `SpinGlass/Parisi.lean`.
 
-Current Chapter 14 status: `SpinGlass/Parisi/ParisiFullMin.lean` proves
-`exists_randomFieldParisiMIN`, providing strict mass and overlap parameters,
-near-infimum value, overlap minimization, and full fixed-level minimization on
-the closed parameter domain. `SpinGlass/Parisi/ParisiMVariation.lean` defines an
-overlap/mass insertion and proves left-endpoint, right-endpoint, and matching-mass
-functional identities. The mass derivative estimates, coupled main estimate,
-concentration, localization, interpolation lower comparison, and the nondegenerate
-theorem in `ParisiLowerBound.lean` remain open. Build these leaf modules explicitly;
-`SpinGlass.lean` does not yet import the lower-bound capstone.
+For Parisi maintenance, read `SpinGlass/Parisi/AGENTS.md`, then the next task in
+`SpinGlass/Parisi/Docs/EDITING_PLAN.md`; locate declaration owners in
+`SpinGlass/Parisi/INDEX.md`. Inspect the working tree and preserve ongoing edits.
+The current MIN owner is `Minimizer/Full.lean`; mass insertions live in
+`Variational/ParisiMVariation.lean`. Historical flat filenames refer to the
+current owners listed in the index. Documentation records prior checks;
+validate the actual changed leaves and consumers before reporting completion.
 
 ## Parisi overlap-derivative completion criteria
 
-When working on `SpinGlass/Parisi/ParisiQDeriv.lean`, the claims attributed to Talagrand,
+When working on `SpinGlass/Parisi/Minimizer/QVariation/`, the claims attributed to Talagrand,
 Vol. II, Section 14.7 are complete only when the following conditions hold.
 
 - Define the concrete moment
@@ -50,6 +51,8 @@ Vol. II, Section 14.7 are complete only when the following conditions hold.
   assumptions, admissibility, and minimization, without hypotheses that restate (14.219), endpoint
   moment bounds, or (14.222).
 - Preserve useful abstract intermediate lemmas, but label conditional reductions accurately.
-- Verify with `lake build SpinGlass.Parisi.ParisiQDeriv`, run `git diff --check`, and leave no
-  `sorry` or `admit` in the completed development.
+- Build `SpinGlass.Parisi.Minimizer.QVariation.RandomField` and its changed owners
+  using `SpinGlass/Parisi/.parisi-lean.ps1`, then build the lower-bound capstone.
+  Run `git diff --check` and audit changed public helpers and the capstone with
+  `#print axioms`. Leave no proof holes or new project axioms in the dependency cone.
 </INSTRUCTIONS>

@@ -1,3 +1,4 @@
+import SpinGlass.Parisi.Analytic.Gaussian.Curvature
 import SpinGlass.Parisi.Variational.ParisiSpatialRegularity
 
 /-!
@@ -349,5 +350,156 @@ theorem coleHopf_zero_spatial_deriv_sq_le_integral {A : ℝ → ℝ}
     hA₁.continuous.measurable hfirst 0 v x
   rw [← ((coleHopf_spatial_derivative_formulas hA hfirst hsecond 0 v).1 x).deriv] at h
   simpa only [coleHopfQ_zero, mul_one] using h
+
+/-- The variance derivative (14.199) in the actual Gaussian operator, with
+the expectation branch at zero mass included. The positive variance is the
+only condition needed for a two-sided derivative of the clamped variance. -/
+theorem hasDerivAt_coleHopf_variance_of_pos {A : ℝ → ℝ}
+    (hA : ContDiff ℝ 2 A) {C₁ C₂ : ℝ}
+    (hfirst : ∀ x, |deriv A x| ≤ C₁)
+    (hsecond : ∀ x, |deriv (deriv A) x| ≤ C₂)
+    (m x : ℝ) {s : ℝ} (hs : 0 < s) :
+    HasDerivAt (fun t : ℝ => coleHopf m t.toNNReal A x)
+      ((1 / 2) * ∫ z, (deriv (deriv A) (x + z) + m * deriv A (x + z) ^ 2) *
+        coleHopfQ m s.toNNReal A x z ∂gaussianReal 0 s.toNNReal) s := by
+  have hAd : Differentiable ℝ A := hA.differentiable (by norm_num)
+  have hA₁ : ContDiff ℝ 1 (deriv A) := (contDiff_succ_iff_deriv.1 hA).2.2
+  have hA₁d : Differentiable ℝ (deriv A) := hA₁.differentiable one_ne_zero
+  have hA₂c := hA₁.continuous_deriv le_rfl
+  have hAg := HasLinearGrowth.of_bounded_deriv (fun y => (hAd y).hasDerivAt) hfirst
+  rcases eq_or_ne m 0 with rfl | hm
+  · simpa only [coleHopf_zero, coleHopfQ_zero, zero_mul, add_zero, mul_one] using
+      hasDerivAt_integral_comp_add_gaussianReal_var
+        (fun y => (hAd y).hasDerivAt) (fun y => (hA₁d y).hasDerivAt)
+        hAg.toHasExpGrowth (HasExpGrowth.of_bounded hfirst)
+        (HasExpGrowth.of_bounded hsecond) hA₂c hs x
+  · exact hasDerivAt_coleHopf_var
+      (fun y => (hAd y).hasDerivAt) (fun y => (hA₁d y).hasDerivAt)
+      hAg (HasExpGrowth.of_bounded hfirst) (HasExpGrowth.of_bounded hsecond)
+      hA₂c hm hs x
+
+/-- The variance slope of a sharp spatial input lies in [0,1/2]. Both the
+coefficient and the bounds are independent of the variance and level count. -/
+theorem coleHopf_variance_deriv_bounds {A : ℝ → ℝ} (hA : ContDiff ℝ 2 A)
+    (hsharp : ∀ x, 0 ≤ deriv (deriv A) x ∧
+      deriv (deriv A) x + deriv A x ^ 2 ≤ 1)
+    {m : ℝ} (hm : m ∈ Icc (0 : ℝ) 1) (x : ℝ) {s : ℝ} (hs : 0 < s) :
+    deriv (fun t : ℝ => coleHopf m t.toNNReal A x) s ∈ Icc (0 : ℝ) (1 / 2) := by
+  have hfirst : ∀ y, |deriv A y| ≤ 1 := fun y => by
+    apply abs_le.2
+    constructor <;> nlinarith [(hsharp y).1, (hsharp y).2]
+  have hsecond : ∀ y, |deriv (deriv A) y| ≤ 1 := fun y => by
+    rw [abs_of_nonneg (hsharp y).1]
+    nlinarith [(hsharp y).2, sq_nonneg (deriv A y)]
+  have hAg := HasLinearGrowth.of_bounded_deriv
+    (fun y => ((hA.differentiable (by norm_num)) y).hasDerivAt) hfirst
+  have hA₁ : ContDiff ℝ 1 (deriv A) := (contDiff_succ_iff_deriv.1 hA).2.2
+  have hGm : Measurable (fun y => deriv (deriv A) y + m * deriv A y ^ 2) :=
+    (hA₁.continuous_deriv le_rfl).measurable.add
+      (measurable_const.mul (hA₁.continuous.measurable.pow_const 2))
+  have hG : ∀ y, 0 ≤ deriv (deriv A) y + m * deriv A y ^ 2 ∧
+      deriv (deriv A) y + m * deriv A y ^ 2 ≤ 1 := fun y => by
+    constructor
+    · exact add_nonneg (hsharp y).1 (mul_nonneg hm.1 (sq_nonneg _))
+    · nlinarith [(hsharp y).2, mul_nonneg (sub_nonneg.2 hm.2) (sq_nonneg (deriv A y))]
+  have hGi := integrable_bounded_mul_coleHopfQ hAg hA.continuous.measurable
+    hGm (fun y => by rw [abs_of_nonneg (hG y).1]; exact (hG y).2) m s.toNNReal x
+  have hQi : Integrable (coleHopfQ m s.toNNReal A x) (gaussianReal 0 s.toNNReal) := by
+    simpa only [one_mul] using integrable_bounded_mul_coleHopfQ hAg
+      hA.continuous.measurable measurable_const
+      (fun _ => (by norm_num : |(1 : ℝ)| ≤ 1)) m s.toNNReal x
+  have hpos : 0 ≤ ∫ z, (deriv (deriv A) (x + z) + m * deriv A (x + z) ^ 2) *
+      coleHopfQ m s.toNNReal A x z ∂gaussianReal 0 s.toNNReal :=
+    integral_nonneg fun z => mul_nonneg (hG (x + z)).1 (coleHopfQ_pos _ _ _ _ _).le
+  have hupper : (∫ z, (deriv (deriv A) (x + z) + m * deriv A (x + z) ^ 2) *
+      coleHopfQ m s.toNNReal A x z ∂gaussianReal 0 s.toNNReal) ≤ 1 := by
+    rw [← integral_coleHopfQ_all_mass hAg hA.continuous.measurable m s.toNNReal x]
+    exact integral_mono hGi hQi fun z => by
+      simpa only [one_mul] using
+        mul_le_mul_of_nonneg_right (hG (x + z)).2 (coleHopfQ_pos _ _ _ _ _).le
+  rw [(hasDerivAt_coleHopf_variance_of_pos hA hfirst hsecond m x hs).deriv]
+  exact ⟨by positivity, by linarith⟩
+
+/-- Layer comparison (14.273), with the stronger upper increment v/2.
+Continuity extends the interior variance calculation to zero variance, so
+no derivative across the clamped endpoint is assumed. -/
+theorem coleHopf_sub_self_mem_Icc {A : ℝ → ℝ} (hA : ContDiff ℝ 2 A)
+    (hsharp : ∀ x, 0 ≤ deriv (deriv A) x ∧
+      deriv (deriv A) x + deriv A x ^ 2 ≤ 1)
+    {m : ℝ} (hm : m ∈ Icc (0 : ℝ) 1) (v : ℝ≥0) (x : ℝ) :
+    coleHopf m v A x - A x ∈ Icc (0 : ℝ) ((v : ℝ) / 2) := by
+  have hfirst : ∀ y, |deriv A y| ≤ 1 := fun y => by
+    apply abs_le.2
+    constructor <;> nlinarith [(hsharp y).1, (hsharp y).2]
+  have hsecond : ∀ y, |deriv (deriv A) y| ≤ 1 := fun y => by
+    rw [abs_of_nonneg (hsharp y).1]
+    nlinarith [(hsharp y).2, sq_nonneg (deriv A y)]
+  have hAg := HasLinearGrowth.of_bounded_deriv
+    (fun y => ((hA.differentiable (by norm_num)) y).hasDerivAt) hfirst
+  let f : ℝ → ℝ := fun t => coleHopf m t.toNNReal A x
+  have hc : Continuous f := continuous_coleHopf_var hA.continuous hAg m x
+  have hd : ∀ t ∈ interior (Icc (0 : ℝ) (v : ℝ)), DifferentiableAt ℝ f t := by
+    intro t ht
+    rw [interior_Icc] at ht
+    exact (hasDerivAt_coleHopf_variance_of_pos hA hfirst hsecond m x ht.1).differentiableAt
+  have hmono : MonotoneOn f (Icc (0 : ℝ) (v : ℝ)) := by
+    refine monotoneOn_of_deriv_nonneg (convex_Icc _ _) hc.continuousOn
+      (fun t ht => (hd t ht).differentiableWithinAt) ?_
+    intro t ht
+    rw [interior_Icc] at ht
+    exact (coleHopf_variance_deriv_bounds hA hsharp hm x ht.1).1
+  have hanti : AntitoneOn (fun t => f t - t / 2) (Icc (0 : ℝ) (v : ℝ)) := by
+    refine antitoneOn_of_deriv_nonpos (convex_Icc _ _)
+      (hc.sub (continuous_id.div_const 2)).continuousOn
+      (fun t ht => ((hd t ht).sub (differentiableAt_id.div_const 2)).differentiableWithinAt) ?_
+    intro t ht
+    have htpos : 0 < t := by rw [interior_Icc] at ht; exact ht.1
+    have hdt := (hd t ht).hasDerivAt.sub ((hasDerivAt_id t).div_const 2)
+    simp only [id_eq] at hdt
+    change deriv (f - fun t => t / 2) t ≤ 0
+    rw [hdt.deriv]
+    exact sub_nonpos.2 (coleHopf_variance_deriv_bounds hA hsharp hm x htpos).2
+  have hlo := hmono (left_mem_Icc.2 v.2) (right_mem_Icc.2 v.2) v.2
+  have hhi := hanti (left_mem_Icc.2 v.2) (right_mem_Icc.2 v.2) v.2
+  simp only [f, Real.toNNReal_zero, Real.toNNReal_coe, coleHopf_zero_var,
+    zero_div, sub_zero] at hlo hhi
+  exact ⟨sub_nonneg.2 hlo, by linarith⟩
+
+/-- Iterating (14.273) accumulates at most half the total Gaussian variance.
+The estimate is independent of the number and sizes of individual layers. -/
+theorem coleHopfIterate_sub_terminal_mem_Icc {A : ℝ → ℝ} (hA : ContDiff ℝ 4 A)
+    {C : ℝ} (hb : ∀ i ∈ Finset.Icc 1 4, ∀ x, |iteratedDeriv i A x| ≤ C)
+    (hsharp : ∀ x, 0 ≤ deriv (deriv A) x ∧
+      deriv (deriv A) x + deriv A x ^ 2 ≤ 1)
+    {j : ℕ} (ms : Fin j → ℝ) (vs : Fin j → ℝ≥0)
+    (hm : ∀ p, ms p ∈ Icc (0 : ℝ) 1) (x : ℝ) :
+    coleHopfIterate j ms vs A x - A x ∈ Icc (0 : ℝ) ((∑ p, (vs p : ℝ)) / 2) := by
+  induction j with
+  | zero => simp only [coleHopfIterate_zero, sub_self, Fin.sum_univ_zero,
+      zero_div, mem_Icc, le_refl, and_self]
+  | succ j ih =>
+      obtain ⟨hB, _, _⟩ := coleHopfIterate_spatial_regular_four
+        (Fin.tail ms) (Fin.tail vs) hA ⟨C, hb⟩
+      have htail := ih (Fin.tail ms) (Fin.tail vs) (fun p => hm p.succ)
+      have hlayer := coleHopf_sub_self_mem_Icc (hB.of_le (by norm_num))
+        (fun y => coleHopfIterate_sharp_spatial_bounds hA hb hsharp
+          (Fin.tail ms) (Fin.tail vs) (fun p => hm p.succ) y) (hm 0) (vs 0) x
+      rw [coleHopfIterate_succ, Fin.sum_univ_succ]
+      exact ⟨by linarith [htail.1, hlayer.1], by
+        simp only [Fin.tail] at htail
+        linarith [htail.2, hlayer.2]⟩
+
+/-- Concrete suffix comparison obtained from (14.273). Only the accumulated
+variance appears; the external field is a spatial translation. -/
+theorem parisiQSuffix_sub_terminal_mem_Icc (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
+    {ms : Fin k → ℝ} (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1))
+    (hm : ParisiMAdmissible ms) (x : ℝ) :
+    parisiQSuffix ξ h ms qs r x - parisiLogCoshTerminal h x ∈
+      Icc (0 : ℝ) ((∑ p, (parisiQSuffixVars ξ qs r p : ℝ)) / 2) := by
+  obtain ⟨C, hC⟩ := exists_bound_iteratedDeriv_parisiLogCoshTerminal_four h
+  apply coleHopfIterate_sub_terminal_mem_Icc (contDiff_parisiLogCoshTerminal h 4) hC
+    (parisiLogCoshTerminal_sharp_spatial_bounds h)
+  intro p
+  exact ⟨(hm.mExt_pos (by omega)).le, mExt_le_one (fun i => (hm.2.2 i).le) _⟩
 
 end SpinGlass

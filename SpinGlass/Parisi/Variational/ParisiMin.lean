@@ -1,5 +1,5 @@
 import SpinGlass.Parisi.ParisiInf
-import SpinGlass.Parisi.Minimizer.QVariation.RandomField
+import SpinGlass.Parisi.Minimizer.QVariation.Parameters
 
 /-!
 # Approximation of the random-field Parisi infimum

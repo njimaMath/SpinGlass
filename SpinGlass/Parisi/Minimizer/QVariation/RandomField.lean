@@ -1,5 +1,6 @@
 import SpinGlass.Parisi.Minimizer.QVariation.Derivative
 import SpinGlass.Parisi.Field.RandomFieldFunctional
+import SpinGlass.Parisi.Field.FieldMoments
 
 /-!
 # RandomField
@@ -209,12 +210,6 @@ theorem integrable_parisiQMoment_externalField {μh : Measure ℝ} [IsProbabilit
     (Filter.Eventually.of_forall fun h => by
       rw [Real.norm_eq_abs]
       exact abs_parisiQMoment_le_one qs r hm)
-
-/-- Talagrand's nondegeneracy condition for the external-field law, in the form
-`$0 < \mathbb E h^2 < \infty$`. -/
-structure NondegenerateExternalFieldLaw (μh : Measure ℝ) : Prop where
-  sq_integrable : Integrable (fun h : ℝ => h ^ 2) μh
-  second_moment_pos : 0 < ∫ h, h ^ 2 ∂μh
 
 /-- At a zero first overlap, the first moment is a continuous function of the external field. -/
 theorem continuous_parisiQMoment_first_of_eq_zero {ξ : ℝ → ℝ} {k : ℕ}
@@ -1104,22 +1099,6 @@ theorem randomFieldParisiQ_last_lt_one_of_isMin
       (1 - randomFieldParisiQMoment μh ξ ms qs (Fin.last k)) := by positivity
   linarith
 
-/-- A finite second moment under a probability law supplies the first-moment integrability
-needed for the Parisi functional. -/
-lemma NondegenerateExternalFieldLaw.integrable_id
-    {μh : Measure ℝ} [IsProbabilityMeasure μh] (hμ : NondegenerateExternalFieldLaw μh) :
-    Integrable id μh := by
-  apply ((integrable_const (1 : ℝ)).add hμ.sq_integrable).mono'
-    measurable_id.aestronglyMeasurable
-  filter_upwards [] with h
-  change ‖h‖ ≤ 1 + h ^ 2
-  rw [Real.norm_eq_abs]
-  rcases le_total 0 h with hh | hh
-  · rw [abs_of_nonneg hh]
-    nlinarith [sq_nonneg (h - 1)]
-  · rw [abs_of_nonpos hh]
-    nlinarith [sq_nonneg (h + 1)]
-
 /-- Proposition 14.7.5 for a nondegenerate probability law of i.i.d. external fields.
 All derivatives and endpoint bounds are consequences of the actual recursion. -/
 theorem randomFieldParisiQ_strict_chain_and_eq_concrete_moment_of_isMin
@@ -1140,19 +1119,6 @@ theorem randomFieldParisiQ_strict_chain_and_eq_concrete_moment_of_isMin
     (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) :
     randomFieldParisiQMoment (Measure.dirac h) ξ ms qs r = parisiQMoment ξ h ms qs r := by
   simp [randomFieldParisiQMoment]
-
-/-- A constant external field is nondegenerate exactly when it is nonzero. -/
-@[simp] theorem nondegenerateExternalFieldLaw_dirac_iff (h : ℝ) :
-    NondegenerateExternalFieldLaw (Measure.dirac h) ↔ h ≠ 0 := by
-  constructor
-  · intro hμ
-    have hp := hμ.second_moment_pos
-    simpa using (ne_of_gt (show 0 < h ^ 2 by simpa using hp)).imp
-      (fun hz => by simp [hz])
-  · intro hh
-    refine ⟨?_, ?_⟩
-    · exact integrable_dirac (by simp)
-    · simpa using sq_pos_of_ne_zero hh
 
 /-- The stationarity moment in Proposition 14.7.5 is explicitly the expectation at any
 coordinate of the i.i.d. product law. -/

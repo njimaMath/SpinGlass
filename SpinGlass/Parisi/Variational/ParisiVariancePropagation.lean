@@ -1,3 +1,4 @@
+import SpinGlass.Parisi.Analytic.Convexity
 import SpinGlass.Parisi.Variational.ParisiVarianceAveraging
 
 /-!

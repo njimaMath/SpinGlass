@@ -164,7 +164,7 @@ noncomputable def cascadeTiltTanhSq
     + 2
 
 /-- The encoded signed conditional square is measurable in the root field `a`. -/
-private lemma measurable_cascadeTiltTanhSq
+lemma measurable_cascadeTiltTanhSq
     (ms : Fin κ → ℝ)
     (vs : Fin κ → ℝ≥0)
     (r : ℕ) :

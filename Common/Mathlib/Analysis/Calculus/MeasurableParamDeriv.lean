@@ -13,34 +13,12 @@ import Mathlib.Order.Filter.AtTopBot.CountablyGenerated
 
 `measurable_deriv_param`: if `v ↦ Φ v x` is differentiable at `v₀` for every parameter `x` with
 derivative `D x`, and each `Φ v` is measurable in `x`, then `D` is measurable. The derivative is
-the pointwise limit of the measurable difference quotients along `v₀ + 1/(n+1)`, so no joint
+a pointwise limit of measurable difference quotients within the domain, so no joint
 measurability, continuity or domination is needed. (Mathlib's `measurable_deriv` is the
 measurability of `deriv f` in the *differentiation* variable, a different statement.)
 -/
 
 open MeasureTheory Filter Topology
-
-/-- **A parametrized derivative is measurable in the parameter**: if `v ↦ Φ v x` is
-differentiable at `v₀` for every parameter `x`, with derivative `D x`, and each `Φ v` is
-measurable, then `D` is measurable — it is the pointwise limit of the measurable difference
-quotients along `v₀ + 1/(n+1)`. -/
-theorem measurable_deriv_param {X : Type*} [MeasurableSpace X] {Φ : ℝ → X → ℝ} {D : X → ℝ}
-    {v₀ : ℝ} (hm : ∀ v, Measurable (Φ v)) (hd : ∀ x, HasDerivAt (fun v => Φ v x) (D x) v₀) :
-    Measurable D := by
-  have h0 : Tendsto (fun n : ℕ => 1 / ((n : ℝ) + 1)) atTop (𝓝[≠] (0 : ℝ)) := by
-    rw [tendsto_nhdsWithin_iff]
-    refine ⟨tendsto_one_div_add_atTop_nhds_zero_nat (𝕜 := ℝ),
-      Eventually.of_forall fun n => ?_⟩
-    simp only [Set.mem_compl_iff, Set.mem_singleton_iff, one_div, inv_eq_zero]
-    positivity
-  have hseq : ∀ x, Tendsto (fun n : ℕ => ((n : ℝ) + 1) * (Φ (v₀ + 1 / ((n : ℝ) + 1)) x - Φ v₀ x))
-      atTop (𝓝 (D x)) := by
-    intro x
-    have h1 := ((hd x).tendsto_slope_zero).comp h0
-    refine h1.congr fun n => ?_
-    simp only [Function.comp_apply, smul_eq_mul, one_div, inv_inv]
-  exact measurable_of_tendsto_metrizable (fun n => ((hm _).sub (hm _)).const_mul _)
-    (tendsto_pi_nhds.2 hseq)
 
 /-- A derivative within a fixed domain is measurable in the evaluation
 parameter whenever the domain has points approaching the differentiation point.
@@ -50,7 +28,7 @@ theorem measurable_derivWithin_param {X : Type*} [MeasurableSpace X]
     (hs : AccPt v₀ (𝓟 s)) (hm : ∀ v, Measurable (Φ v))
     (hd : ∀ x, HasDerivWithinAt (fun v => Φ v x) (D x) s v₀) :
     Measurable D := by
-  haveI : (𝓝[s \ {v₀}] v₀).NeBot := accPt_principal_iff_nhdsWithin.1 hs
+  have : (𝓝[s \ {v₀}] v₀).NeBot := accPt_principal_iff_nhdsWithin.1 hs
   obtain ⟨u, hu⟩ := Filter.exists_seq_tendsto (𝓝[s \ {v₀}] v₀)
   have hseq : ∀ x, Tendsto
       (fun n => (Φ (u n) x - Φ v₀ x) / (u n - v₀)) atTop (𝓝 (D x)) := by
@@ -59,6 +37,15 @@ theorem measurable_derivWithin_param {X : Type*} [MeasurableSpace X]
       (hasDerivWithinAt_iff_tendsto_slope.1 (hd x)).comp hu
   exact measurable_of_tendsto_metrizable
     (fun n => ((hm (u n)).sub (hm v₀)).div_const _) (tendsto_pi_nhds.2 hseq)
+
+/-- A full-domain derivative is measurable in the evaluation parameter whenever
+all slices are measurable. This is the within-domain result on the full real line. -/
+theorem measurable_deriv_param {X : Type*} [MeasurableSpace X] {Φ : ℝ → X → ℝ} {D : X → ℝ}
+    {v₀ : ℝ} (hm : ∀ v, Measurable (Φ v)) (hd : ∀ x, HasDerivAt (fun v => Φ v x) (D x) v₀) :
+    Measurable D :=
+  measurable_derivWithin_param
+    (uniqueDiffWithinAt_univ (𝕜 := ℝ) (x := v₀)).accPt hm
+    (fun x => (hd x).hasDerivWithinAt)
 
 /-- Admissible endpoint derivatives on a nontrivial closed interval are
 measurable in the evaluation parameter. -/

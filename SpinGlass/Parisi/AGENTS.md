@@ -1,52 +1,58 @@
 # Parisi proof-agent instructions
 
-## Rule
-
-Use mathlib in /Lean/.lake
-
 ## Objective and first action
 
-Complete the existing claims in [ParisiLowerBound.lean](ParisiLowerBound.lean),
-following Talagrand, Vol. II, Chapter 14, Sections 14.5-14.10. Preserve all public
-statements. The open theorem is
+Use the existing mathlib installation in the parent Lean workspace's `.lake`.
+The four public claims in [ParisiLowerBound.lean](ParisiLowerBound.lean) are
+complete. Preserve all statements and assumptions, including
 `eventually_randomFieldParisiInf_sub_le_iidFieldMixedPSpinFreeEnergy_of_nondegenerate`.
-The later reduction and convergence results depend on this hole.
+Do not add proof holes, project axioms, unsafe declarations or stronger hypotheses.
 
-For a new proof session, read [the next task](Docs/EDITING_PLAN.md#next-task)
-and the target theorem, then use [INDEX.md](INDEX.md) to find declaration owners.
-Read only the source ranges and book pages needed for that task. Do not load the
-whole reference extract or all recursion files into context.
-
-The root and nonroot inner-mass U/f identities, q-stationarity, endpoint
-comparisons, uniform propagated Taylor remainders and square-root MIN estimates
-were compiled on 2026-10-11. The mass constants are independent of the level
-count and field law. The next task is the sharp spatial recursion bounds and
-uniform first-overlap separation, followed by overlap curvature and the mirror
-outer-mass bridge.
-See the plan for exact declarations and remaining uniformity requirements.
-Recheck the source before implementing anything described as missing.
+For a new session, read [the next task](Docs/EDITING_PLAN.md#next-task), inspect
+the working tree, and use [INDEX.md](INDEX.md) to locate declaration owners.
+Read only the source ranges and book pages needed for that task. Recheck the
+source before implementing anything described as missing in historical notes.
 
 ## Document responsibilities
 
 | Document | Read it for |
 | --- | --- |
-| [README.md](README.md) | Scope, field semantics, entry points |
-| [INDEX.md](INDEX.md) | Exact declaration owners and source lookup |
-| [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) | Current evidence, dependencies, mathematical contracts |
-| [Docs/EDITING_PLAN.md](Docs/EDITING_PLAN.md) | Next deliverable, phase exit conditions, book page map |
+| [README.md](README.md) | Scope, field semantics and module entry points |
+| [INDEX.md](INDEX.md) | Exact declaration owners |
+| [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) | Dependencies and mathematical contracts |
+| [Docs/EDITING_PLAN.md](Docs/EDITING_PLAN.md) | Next deliverable and validation history |
+| [Docs/ANALYTIC.md](Docs/ANALYTIC.md) | Generic analytic topic owners and reuse guidance |
 
-These instructions govern editing. Lean statements govern the formal target;
-the book governs the intended argument. If they differ, record the specific
-mismatch and prove a bridge; do not silently change either contract.
-Documentation is a navigation aid, not evidence of a completed proof.
+Lean statements govern the formal target; the book governs the intended argument.
+If they differ, record the mismatch and prove a bridge without changing either
+contract. Documentation is navigation, not evidence of a completed proof.
 
-Paths are relative to this directory unless stated otherwise. Older root
-instructions mention pre-reorganization filenames. Apply their mathematical
-requirements to the current owners in INDEX.md. In particular, the old
-q-derivative completion criteria apply to the Minimizer/QVariation directory.
+Paths are relative to this directory. Historical notes may use filenames
+from before reorganization: apply their mathematical requirements to the owners
+in INDEX.md. The q-derivative completion criteria apply to Minimizer/QVariation.
+[Analytic.lean](Analytic.lean) imports the generic Analytic topic modules. The
+historical `ARISTOTLE.lean` import is replaced by `SpinGlass.Parisi.Analytic`;
+declaration names remain in `SpinGlass.Aristotle`. Group analytic work by
+mathematical topic, with basic definitions before derivative and bound modules.
+The shared `ProbabilityTheory.coleHopf_translate` and `coleHopfQ_translate`
+are owned by [Common ColeHopf](../../Common/Mathlib/Probability/Distributions/Gaussian/ColeHopf.lean);
+`coleHopfIterate_translate` and `coleHopfIterate_append` are owned by
+[Common CascadeColeHopf](../../Common/Mathlib/Probability/PointProcess/CascadeColeHopf.lean). These replace
+former `SpinGlass` declarations; use the shared names through their owner imports.
+Keep full-domain derivative measurability as a specialization of
+`measurable_derivWithin_param` in
+[MeasurableParamDeriv](../../Common/Mathlib/Analysis/Calculus/MeasurableParamDeriv.lean).
+Import the declaration owner into proof leaves. Field law
+assumptions belong in Field/FieldMoments.lean, independently of stationarity.
 
 ## Mathematical contracts
 
+- For every source-attributed theorem, verify that source assumptions imply
+  the Lean hypotheses and that the Lean conclusion implies the source result.
+  Check definitions, domains, endpoints, quantifier order and constant
+  dependencies, not just the displayed formula. Prove any additional analytic
+  side conditions from the source assumptions. Label a partial or conditional
+  result accurately until those bridges are complete.
 - Keep the lower-bound target under a probability law with finite second moment;
   its nondegenerate branch additionally assumes positive second moment. Do not
   replace this by bounded, Gaussian, exponentially integrable, or almost surely
@@ -57,7 +63,9 @@ q-derivative completion criteria apply to the Minimizer/QVariation directory.
 - Use `externalFieldVecLaw` for i.i.d. site fields and `sharedReplicaSiteField` for
   replicas of one quenched system. Averaging one constant field across all sites
   gives a different model.
-- Preserve `TalagrandXiCondition` and the separate covariance PSD hypothesis.
+- Preserve the mathematical scope of `TalagrandXiCondition` and the separate
+  covariance PSD hypothesis. Any replacement interface needs proved bridges
+  that preserve the existing capstone contracts.
   Convexity does not establish existence of the Gaussian Hamiltonian. Derive
   needed regularity from the current structure; do not assume global extra
   smoothness or strict positivity of the second derivative at zero.
@@ -76,8 +84,83 @@ q-derivative completion criteria apply to the Minimizer/QVariation directory.
   An averaged pressure gap is not a gap for each realized field. Discharge the
   missing field-fluctuation argument described in the plan.
 
+## Minimal API and proof obligations
+
+Follow mathlib's [review guidance](https://leanprover-community.github.io/contribute/pr-review.html)
+and [values](https://leanprover-community.github.io/contribute/values.html).
+Use the following rules during development and at each milestone.
+
+- Search the pinned Mathlib, `Common/Mathlib`, existing SpinGlass APIs and the
+  target `main` branch before adding an object or property. Search by its
+  mathematical role as well as its name. Prefer an existing theorem, a short
+  specialization, or an extension in the existing owner over a parallel API.
+- Give each mathematical object one canonical definition at the lowest suitable
+  dependency layer. General analysis and probability belong in `Common/Mathlib`
+  when absent from Mathlib; Parisi-specific bridges stay here. In particular,
+  compare `Analytic/` with the existing heat, Cole-Hopf and cascade layers.
+  Moving or renaming the former `ARISTOTLE.lean` does not establish deduplication.
+- A definition must not conceal an unproved identification, regularity result,
+  integrability condition, normalization, or desired conclusion. Inspect
+  structures, predicates, instances and chosen witnesses as well as `def`s.
+  Prove their connection to the actual recursion or probability law. A bundle
+  assuming the target estimate is a conditional interface, not its proof.
+- State derivative results using `HasDerivAt`, `HasDerivWithinAt`, `deriv`,
+  `derivWithin` or `iteratedDeriv` of the original object as appropriate.
+  Explicit response formulas may be useful auxiliaries, but need proved
+  derivative identities on their claimed domains. Naming a formula a derivative
+  does not discharge differentiability, including at zero mass or variance.
+- Consolidate special cases through general statements: deterministic fields
+  through Dirac laws, root/right insertions through a level parameter where
+  appropriate, and hypothesis variants through the weakest useful theorem.
+  Retain a wrapper only for a concrete usability or compatibility reason;
+  avoid copying its definition or proof. Remove superseded code after migrating
+  consumers and updating the index.
+- Check hypothesis bundles against their sources and construct representative
+  model instances. Use standard predicates such as `IsMinOn` where applicable,
+  keeping any separate admissibility requirement. Do not replace endpoint
+  derivative assumptions with stronger smoothness merely to simplify an API.
+
+## Milestone review before a PR
+
+After reaching a milestone, review its entire diff before opening a PR to
+SpinGlass. Proof completion and library integration are separate checks.
+
+- Account for every new definition: reuse, specialize, move, remove, or retain
+  with a mathematical reason. Review duplicate properties as well as objects.
+- Record the canonical owners and any compatibility bridges; check that no
+  proof obligation moved into a definition, bundle or final theorem hypothesis.
+- Record source theorem/equation references and check assumption/conclusion
+  strength, endpoint cases, and representative applications.
+- Run the validation below for changed owners and consumers, including Common
+  modules when moved. Record actual commands and results, remaining limitations,
+  and the next task. Historical builds do not validate a new refactor.
+
+The concrete review targets and acceptance conditions are maintained once in
+[the consolidation backlog](Docs/EDITING_PLAN.md#consolidation-backlog).
+
+## Style
+
+Follow mathlib's [naming](https://leanprover-community.github.io/contribute/naming.html)
+and [style](https://leanprover-community.github.io/contribute/style.html)
+conventions, with the repository's pinned toolchain and options. Keep local
+rules small: descriptive mathematical names, explicit binder and result types,
+two-space proof indentation, lines normally within 100 characters, and direct
+imports of declaration owners. Use `snake_case` for theorem names,
+`UpperCamelCase` for types and predicates, and `lowerCamelCase` for other data,
+respecting established Mathlib names. New code belongs in the namespace of its
+mathematical owner; compatibility namespaces need not dictate new names.
+Declare proved propositions as theorems with explicit result types.
+Document public definitions and main results concisely, with source references
+where applicable. Prefer readable proofs and useful supporting lemmas over
+tactic compression. Add automation attributes only with a clear intended use.
+
 ## Work efficiently
 
+- Keep task edits focused on `SpinGlass/Parisi/`. For API consolidation, the
+  user's requested moves to `Common/Mathlib` and necessary consumer updates
+  are in scope when they remove duplication or give a generic result its proper
+  owner. Do not edit installed dependencies. Read-only checks outside this
+  directory and build outputs in the existing parent cache are allowed.
 - Inspect the working tree first; preserve ongoing edits and the current module
   organization. Do not restore old paths or perform unrelated refactors.
 - Search exact names in INDEX.md before broad searches. Import the owning module,
@@ -92,50 +175,52 @@ q-derivative completion criteria apply to the Minimizer/QVariation directory.
 - Use `Fin`, `qExt`, and `mExt`; preserve fixed endpoints. Compile after changing
   indexing. Treat zero variances by admissible one-sided variations or proved
   nearby-sign arguments.
-- Keep namespace `SpinGlass`, explicit binders, and repository Lean options.
+- Keep the appropriate owner namespace, explicit binders, and repository Lean options.
   Put book theorem/equation references in bridge-lemma docstrings.
 - Do not add `sorry`, `admit`, project axioms, or unsafe proof shortcuts. Audit the
   transitive dependency cone, including helpers outside this directory.
+- On Windows, set PowerShell `$OutputEncoding` to UTF-8 before piping Unicode
+  source-editing scripts to Python; use `python -X utf8` and inspect the diff.
 - On handoff, record the exact declaration completed, checks actually run, any
   blocker, and the next smallest lemma in the plan. Source inspection is not a
   successful build.
 
 ## Validation
 
-Run commands from the repository root. For proof changes, build the changed leaf
-and its relevant consumers. Existing useful targets are:
+Build each changed leaf and its relevant consumers. The local
+[.parisi-lean.ps1](.parisi-lean.ps1) wrapper resolves the repository root from its
+own location and runs Lake there, keeping Git ownership configuration local to
+the command. For complete coverage, run from the repository root:
 
-```text
-lake build SpinGlass.Parisi.Minimizer.QVariation.RandomField
-lake build SpinGlass.Parisi.Minimizer.Full
-lake build SpinGlass.Parisi.Variational.ParisiMassDerivative
-lake build SpinGlass.Parisi.Variational.ParisiMassRecursion
-lake build SpinGlass.Parisi.Variational.ParisiMVariation
-lake build SpinGlass.Parisi.Variational.ParisiRootMVariation
-lake build SpinGlass.Parisi.Variational.ParisiVariancePropagation
-lake build SpinGlass.Parisi.Variational.ParisiSplitResponse
-lake build SpinGlass.Parisi.Variational.ParisiMassPropagation
-lake build SpinGlass.Parisi.Variational.ParisiQuantitativeMass
-lake build SpinGlass.Parisi.ParisiLowerBound
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File SpinGlass/Parisi/.parisi-lean.ps1 build
+powershell -NoProfile -ExecutionPolicy Bypass -File SpinGlass/Parisi/.parisi-lean.ps1 build SpinGlass.Parisi.ParisiLowerBound
 git diff --check
-rg -n '\b(sorry|admit|axiom)\b' SpinGlass/Parisi --glob '*.lean'
+rg -n '\b(sorry|admit|axiom|unsafe)\b' SpinGlass/Parisi --glob '*.lean'
 ```
 
-Inspect scan hits; comments and declarations differ. Compilation may succeed
-with a proof hole, so neither check replaces the other. For the final proof
-audit, use #print axioms on the capstone in a temporary Lean file and check for
-`sorryAx` or new project axioms; ordinary Lean foundations are expected.
+From `SpinGlass/Parisi/`, build the capstone with:
 
-SpinGlass.lean imports the convenience module SpinGlass/Parisi.lean, which
-currently omits the capstone. After completion, add the capstone to that import
-chain and run lake build as well as the explicit leaf build.
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ./.parisi-lean.ps1 build SpinGlass.Parisi.ParisiLowerBound
+```
 
-For documentation-only changes, verify links, module/declaration names, status
-claims, and git diff --check; a full Lean rebuild is unnecessary. Toolchain and
-build paths come from lean-toolchain and lakefile.toml. If Git reports ownership
-trouble, use a command-local safe.directory setting for this checkout rather
-than changing global configuration.
+SpinGlass.lean imports SpinGlass/Parisi.lean, whose convenience import covers
+all modules under this folder, including the capstone and analytic library.
+Proof leaves must still import their declaration owners, avoiding umbrella
+imports and cycles.
 
-Completion means the original lower-bound claims and their dependency cone have
-no proof holes, their assumptions are unchanged, the leaf and umbrella builds
-succeed, and the architecture/status documents report that verified state.
+Inspect source-scan hits; comments and declarations differ. Compilation can
+succeed with a proof hole. Use `#print axioms` on the capstone and changed public
+helpers to check their transitive foundations; `propext`, `Classical.choice` and
+`Quot.sound` are expected. No new project axiom or `sorryAx` is allowed.
+
+Toolchain and cache locations come from lean-toolchain and lakefile.toml. Build
+outputs live in the parent `.lake/spinglass` cache; do not relocate dependencies.
+For documentation-only changes, check links, declaration/module names and
+`git diff --check`; a full rebuild is unnecessary.
+
+Completion requires preserved capstone contracts, successful leaf and consumer
+builds, the foundation audit, source fidelity, the milestone API review, and
+accurate architecture/status documents. Documentation-only changes use the
+lighter checks above and do not establish completion of the consolidation backlog.

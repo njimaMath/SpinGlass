@@ -1,0 +1,176 @@
+import SpinGlass.Parisi.Coupled.CoupledMainInnerFar
+
+/-!
+# Continuity of the actual free inner comparison bounds
+
+Uniform Cole-Hopf variance moduli pass through the field and root
+Gaussian integrals. The bounds therefore remain continuous for a site
+law with finite first moment, including zero split variances.
+-/
+
+open MeasureTheory ProbabilityTheory Set Filter Topology
+open scoped NNReal BigOperators
+
+namespace SpinGlass
+
+/-- The concrete total-variance array is continuous in the split
+coordinate on the whole real line, with the prescribed clamping. -/
+theorem continuous_parisiInnerFreeTotalVars (ξ : ℝ → ℝ) {k : ℕ}
+    (qs : Fin (k + 1) → ℝ) (p : Fin k) :
+    Continuous (parisiInnerFreeTotalVars ξ qs p) := by
+  have hc : Continuous (fun v => parisiResponseSplitVars ξ qs p.castSucc v) := by
+    apply continuous_pi
+    intro i
+    refine Fin.addCases (fun j => ?_) (fun j => ?_) i
+    · refine Fin.lastCases ?_ (fun j => ?_) j
+      · simp only [parisiResponseSplitVars, Fin.append_left, Fin.snoc_last]
+        exact continuous_real_toNNReal.comp
+          ((continuous_const (y := deriv ξ (qExt qs (p.castSucc.val + 2)) - deriv ξ (qs p.castSucc))).sub continuous_id)
+      · simpa only [parisiResponseSplitVars, Fin.append_left, Fin.snoc_castSucc] using
+          (continuous_const : Continuous (fun _ : ℝ => parisiOuterMassPrefixVars ξ qs p.castSucc j))
+    · refine Fin.cases ?_ (fun j => ?_) j
+      · simpa only [parisiResponseSplitVars, Fin.append_right, Fin.cons_zero] using continuous_real_toNNReal
+      · simpa only [parisiResponseSplitVars, Fin.append_right, Fin.cons_succ] using
+          (continuous_const : Continuous (fun _ : ℝ => parisiQSuffixVars ξ qs p.castSucc j))
+  apply continuous_pi
+  intro i
+  exact (continuous_apply (parisiSplitIndex p.castSucc i)).comp hc
+
+/-- A variance modulus for the actual scalar split survives both
+the field and root Gaussian averages, uniformly in their arguments. -/
+theorem abs_parisiInnerFreeZeroValue_sub_le_sum_modulus
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] (hμ : Integrable id μh)
+    (ξ : ℝ → ℝ) {k : ℕ} (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (p : Fin k)
+    (v w b : ℝ) :
+    |parisiInnerFreeZeroValue μh ξ ms qs p v b - parisiInnerFreeZeroValue μh ξ ms qs p w b| ≤
+      ∑ i, coleHopfModulus (parisiLevelMasses (splitParisiMassRight ms p b) i) 1
+        (Real.toNNReal |(parisiInnerFreeTotalVars ξ qs p v i : ℝ) -
+          (parisiInnerFreeTotalVars ξ qs p w i : ℝ)|) := by
+  unfold parisiInnerFreeZeroValue
+  rw [← integral_sub (integrable_parisiInnerFreeSplit_externalField hμ ξ ms qs p v b)
+    (integrable_parisiInnerFreeSplit_externalField hμ ξ ms qs p w b)]
+  rw [← coleHopfIterate_parisiInnerFree_eq_split ξ ms qs p v b,
+    ← coleHopfIterate_parisiInnerFree_eq_split ξ ms qs p w b]
+  have hb := norm_integral_le_of_norm_le_const
+    (μ := μh.prod (gaussianReal 0 (parisiVar ξ qs 0)))
+    (f := fun hz : ℝ × ℝ =>
+      coleHopfIterate (k + 2) (parisiLevelMasses (splitParisiMassRight ms p b))
+        (parisiInnerFreeTotalVars ξ qs p v) (parisiLogCoshTerminal 0) (hz.1 + hz.2) -
+      coleHopfIterate (k + 2) (parisiLevelMasses (splitParisiMassRight ms p b))
+        (parisiInnerFreeTotalVars ξ qs p w) (parisiLogCoshTerminal 0) (hz.1 + hz.2)) (.of_forall fun hz => by
+      rw [Real.norm_eq_abs]
+      exact abs_coleHopfIterate_sub_var_le_sum_modulus
+        (measurable_of_hasDerivAt (hasDerivAt_parisiLogCoshTerminal 0))
+        (L := 1) (fun x y => by simpa only [one_mul] using abs_parisiLogCoshTerminal_sub_le 0 x y)
+        (k + 2) (parisiLevelMasses (splitParisiMassRight ms p b))
+        (parisiInnerFreeTotalVars ξ qs p v) (parisiInnerFreeTotalVars ξ qs p w) (hz.1 + hz.2))
+  simpa only [Real.norm_eq_abs, probReal_univ, mul_one] using hb
+
+/-- The actual field-averaged zero-coupling value is continuous in
+the variance coordinate at every fixed mass, with no mass ordering. -/
+theorem continuous_parisiInnerFreeZeroValue_variance
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] (hμ : Integrable id μh)
+    (ξ : ℝ → ℝ) {k : ℕ} (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (p : Fin k) (b : ℝ) :
+    Continuous (fun v => parisiInnerFreeZeroValue μh ξ ms qs p v b) := by
+  apply continuous_iff_continuousAt.2
+  intro w
+  apply tendsto_iff_dist_tendsto_zero.2
+  have hmod (i : Fin (k + 2)) : Tendsto
+      (fun v => coleHopfModulus (parisiLevelMasses (splitParisiMassRight ms p b) i) 1
+        (Real.toNNReal |(parisiInnerFreeTotalVars ξ qs p v i : ℝ) -
+          (parisiInnerFreeTotalVars ξ qs p w i : ℝ)|)) (nhds w) (nhds 0) := by
+    have hc := NNReal.continuous_coe.comp
+      ((continuous_apply i).comp (continuous_parisiInnerFreeTotalVars ξ qs p))
+    have he : Tendsto (fun v => |(parisiInnerFreeTotalVars ξ qs p v i : ℝ) -
+        (parisiInnerFreeTotalVars ξ qs p w i : ℝ)|) (nhds w) (nhds 0) := by
+      simpa only [Function.comp_apply, Pi.sub_apply, sub_self, abs_zero] using
+        (hc.sub (continuous_const (y := (parisiInnerFreeTotalVars ξ qs p w i : ℝ)))).abs.tendsto w
+    exact (tendsto_coleHopfModulus _ 1).comp he
+  have hsum := tendsto_finsetSum Finset.univ (fun i _ => hmod i)
+  simp only [Finset.sum_const_zero] at hsum
+  simp only [Real.dist_eq]
+  exact squeeze_zero (fun _ => abs_nonneg _)
+    (fun v => abs_parisiInnerFreeZeroValue_sub_le_sum_modulus hμ ξ ms qs p v w b) hsum
+
+/-- The removable terminal variance is continuous in time on the
+whole real line, with the same clamped variance used by the cascade. -/
+theorem continuous_parisiAuxTerminalVar_time (ξ : ℝ → ℝ) {k : ℕ} (qs : Fin (k + 1) → ℝ) :
+    Continuous (fun t => (parisiAuxTerminalVar ξ qs t : ℝ)) := by
+  unfold parisiAuxTerminalVar
+  simp only [NNReal.coe_mul]
+  exact ((NNReal.continuous_coe.comp continuous_real_toNNReal).comp
+    (continuous_const.sub continuous_id)).mul continuous_const
+
+/-- At a fixed admissible mass, the actual scalar pressure bound is
+jointly continuous in time and overlap on the closed inner rectangle. -/
+theorem continuousOn_parisiInnerFreeScalarBound_time_overlap
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] (hμ : Integrable id μh)
+    {ξ : ℝ → ℝ} (hξ : TalagrandXiCondition ξ) {k : ℕ}
+    (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (p : Fin k)
+    (hq : ParisiQAdmissible qs) (t₀ b : ℝ) :
+    ContinuousOn (fun x : ℝ × ℝ => parisiInnerFreeScalarBound μh ξ ms qs p x.1 x.2 b)
+      (Icc (0 : ℝ) t₀ ×ˢ Icc (qs p.castSucc) (qs p.succ)) := by
+  have hmaps : MapsTo (Prod.snd : ℝ × ℝ → ℝ)
+      (Icc (0 : ℝ) t₀ ×ˢ Icc (qs p.castSucc) (qs p.succ)) (Icc (0 : ℝ) 1) := by
+    intro x hx
+    exact ⟨(hq.mem_Icc p.castSucc).1.trans hx.2.1, hx.2.2.trans (hq.mem_Icc p.succ).2⟩
+  have hd := hξ.deriv_continuous.comp continuous_snd.continuousOn hmaps
+  have hθ : ContinuousOn (fun x : ℝ × ℝ => parisiTheta ξ x.2)
+      (Icc (0 : ℝ) t₀ ×ˢ Icc (qs p.castSucc) (qs p.succ)) :=
+    (show ContinuousOn (parisiTheta ξ) (Icc (0 : ℝ) 1) from
+      fun u hu => (hasDerivAt_parisiTheta (hξ.hasDeriv u hu)
+        (hξ.hasDeriv_deriv u hu)).continuousAt.continuousWithinAt).comp
+      continuous_snd.continuousOn hmaps
+  have hv : ContinuousOn (fun x : ℝ × ℝ => x.1 * (deriv ξ (qs p.succ) - deriv ξ x.2))
+      (Icc (0 : ℝ) t₀ ×ˢ Icc (qs p.castSucc) (qs p.succ)) :=
+    continuous_fst.continuousOn.mul (continuousOn_const.sub hd)
+  have hz := (continuous_parisiInnerFreeZeroValue_variance hμ ξ ms qs p b).comp_continuousOn hv
+  have hcor : ContinuousOn (fun x : ℝ × ℝ => x.1 * (parisiCorrection ξ ms qs +
+      (b - ms p) * (parisiTheta ξ (qs p.succ) - parisiTheta ξ x.2)))
+      (Icc (0 : ℝ) t₀ ×ˢ Icc (qs p.castSucc) (qs p.succ)) :=
+    continuous_fst.continuousOn.mul
+      (continuousOn_const.add (continuousOn_const.mul (continuousOn_const.sub hθ)))
+  have ht : Continuous (fun x : ℝ × ℝ => (parisiAuxTerminalVar ξ qs x.1 : ℝ)) :=
+    (continuous_parisiAuxTerminalVar_time ξ qs).comp continuous_fst
+  unfold parisiInnerFreeScalarBound
+  exact ((continuousOn_const.add (hz.const_mul 2)).sub hcor).sub ht.continuousOn
+
+/-- The original interpolation bracket is continuous in time. -/
+theorem continuous_parisiInterpolationBracket_time (μh : Measure ℝ) (ξ : ℝ → ℝ) {k : ℕ}
+    (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) :
+    Continuous (parisiInterpolationBracket μh ξ ms qs) := by
+  unfold parisiInterpolationBracket parisiSplitBracket
+  exact ((continuous_const.add continuous_const).sub
+    ((continuous_id.mul continuous_const).div_const 2)).sub
+      ((continuous_parisiAuxTerminalVar_time ξ qs).div_const 2)
+
+/-- The concrete coupling response is jointly continuous on the
+closed inner rectangle, using its actual variance derivative. -/
+theorem continuousOn_parisiRightResponseGap_time_overlap
+    {μh : Measure ℝ} [IsProbabilityMeasure μh] {ξ : ℝ → ℝ}
+    (hξ : TalagrandXiCondition ξ) {k : ℕ}
+    (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (p : Fin k)
+    (hm : ParisiMAdmissible ms) (hq : ParisiQAdmissible qs)
+    {t₀ : ℝ} (ht₀ : t₀ ∈ Icc (0 : ℝ) 1) :
+    ContinuousOn (fun x : ℝ × ℝ => parisiRightResponseGap μh ξ ms qs p x.1 x.2)
+      (Icc (0 : ℝ) t₀ ×ˢ Icc (qs p.castSucc) (qs p.succ)) := by
+  have hmaps : MapsTo (Prod.snd : ℝ × ℝ → ℝ)
+      (Icc (0 : ℝ) t₀ ×ˢ Icc (qs p.castSucc) (qs p.succ)) (Icc (0 : ℝ) 1) := by
+    intro x hx
+    exact ⟨(hq.mem_Icc p.castSucc).1.trans hx.2.1, hx.2.2.trans (hq.mem_Icc p.succ).2⟩
+  have hd := hξ.deriv_continuous.comp continuous_snd.continuousOn hmaps
+  have hv : ContinuousOn (fun x : ℝ × ℝ => x.1 * (deriv ξ (qs p.succ) - deriv ξ x.2))
+      (Icc (0 : ℝ) t₀ ×ˢ Icc (qs p.castSucc) (qs p.succ)) :=
+    continuous_fst.continuousOn.mul (continuousOn_const.sub hd)
+  have hvm : MapsTo (fun x : ℝ × ℝ => x.1 * (deriv ξ (qs p.succ) - deriv ξ x.2))
+      (Icc (0 : ℝ) t₀ ×ˢ Icc (qs p.castSucc) (qs p.succ))
+      (Icc (0 : ℝ) (deriv ξ (qs p.succ) - deriv ξ (qs p.castSucc))) := by
+    intro x hx
+    exact parisi_inner_time_variance_mem_Icc hξ qs p hq ⟨hx.1.1, hx.1.2.trans ht₀.2⟩ hx.2
+  have hM : ContinuousOn (parisiRightUSpatialMoment 1 μh ξ ms qs p)
+      (Icc (0 : ℝ) (deriv ξ (qs p.succ) - deriv ξ (qs p.castSucc))) :=
+    fun v hv => (hasDerivWithinAt_parisiRightUSpatialMoment_one hξ ms qs p hm hq hv).continuousWithinAt
+  unfold parisiRightResponseGap
+  exact (hM.comp hv hvm).sub continuous_snd.continuousOn
+
+end SpinGlass

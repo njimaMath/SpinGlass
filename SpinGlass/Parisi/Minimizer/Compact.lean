@@ -253,14 +253,10 @@ theorem exists_closedRandomFieldParisiMinimum_of_fixed_levels
     (hμ : Integrable id μh) (hξ : TalagrandXiCondition ξ) :
     ∃ p ∈ parisiParameterDomain k,
       IsMinOn (fun p => closedRandomFieldParisiFunctional μh ξ p.1 p.2)
-        (parisiParameterDomain k) p := by
-  let f : ((Fin k → ℝ) × (Fin (k + 1) → ℝ)) → ℝ :=
-    fun p => closedRandomFieldParisiFunctional μh ξ p.1 p.2
-  have hc : ContinuousOn f (parisiParameterDomain k) :=
-    continuousOn_closedRandomFieldParisiFunctional_parameters hμ hξ
-  obtain ⟨p, hp, hmin⟩ := (isCompact_parisiParameterDomain k).exists_isMinOn
-    (parisiParameterDomain_nonempty k) hc
-  exact ⟨p, hp, hmin⟩
+        (parisiParameterDomain k) p :=
+  (isCompact_parisiParameterDomain k).exists_isMinOn
+    (parisiParameterDomain_nonempty k)
+    (continuousOn_closedRandomFieldParisiFunctional_parameters hμ hξ)
 
 /-- The compact minimum at a selected level count remains near the global infimum. -/
 theorem exists_nearOptimal_closedRandomFieldParisiMinimum

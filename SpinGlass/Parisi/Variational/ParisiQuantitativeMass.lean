@@ -1,5 +1,7 @@
+import SpinGlass.Parisi.Analytic.Variation
 import SpinGlass.Parisi.Variational.ParisiSplitResponse
 import SpinGlass.Parisi.Variational.ParisiMassPropagation
+import SpinGlass.Parisi.Variational.ParisiOuterSplitResponse
 
 /-!
 # Quantitative inserted-mass variation
@@ -489,6 +491,215 @@ theorem exists_uniform_parisiRightf_lower_bound
       change Φ c - Φ (ms p) - ((1 / 2) * parisiRightf μh ξ ms qs p u) * (c - ms p) ≤
         M * (c - ms p) ^ 2 at ht
       linarith)
+  linarith
+
+/-- The outer-mass orientation used for the mirror cases in Section 14.9
+has the same parameter-independent quadratic Taylor bound. The expansion is
+at the matching old mass, including the terminal old mass one and k=0. -/
+theorem exists_uniform_splitParisiLeft_mass_taylor_bound
+    {ξ : ℝ → ℝ} (hξ : TalagrandXiCondition ξ) :
+    ∃ M : ℝ, 0 < M ∧ ∀ {μh : Measure ℝ} [IsProbabilityMeasure μh],
+      Integrable id μh → ∀ (k : ℕ) (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ),
+      ParisiMAdmissible ms → ParisiQAdmissible qs → ∀ p : Fin (k + 1), ∀ u : ℝ,
+      qExt qs (p.val + 1) ≤ u ∧ u ≤ qExt qs (p.val + 2) → ∀ b ∈ Icc (0 : ℝ) 1,
+        |closedRandomFieldParisiFunctional μh ξ
+            (splitParisiMassLeft ms p b) (splitParisiOverlap qs p u) -
+          closedRandomFieldParisiFunctional μh ξ
+            (splitParisiMassLeft ms p (mExt ms (p.val + 1))) (splitParisiOverlap qs p u) -
+          splitParisiLeftMassDeriv μh ξ ms qs p u (mExt ms (p.val + 1)) *
+            (b - mExt ms (p.val + 1))| ≤ M * (b - mExt ms (p.val + 1)) ^ 2 := by
+  let V : ℝ≥0 := (deriv ξ 1 - deriv ξ 0).toNNReal
+  obtain ⟨M, hM, hTaylor⟩ :=
+    exists_uniform_closedRandomFieldParisiFunctional_mass_update_taylor_bound V
+  refine ⟨M, hM, ?_⟩
+  intro μh _ hμ k ms qs hm hq p u hu b hb
+  have hmd : ms ∈ parisiMassDomain k := mem_parisiMassDomain_iff.2
+    ⟨hm.1.monotone, fun i => (hm.2.1 i).le, fun i => (hm.2.2 i).le⟩
+  have hqd : qs ∈ parisiOverlapDomain k := mem_parisiOverlapDomain_iff.2
+    ⟨hq.1.monotone, hq.2.1, hq.2.2⟩
+  let sms := splitParisiMassLeft ms p (mExt ms (p.val + 1))
+  let sqs := splitParisiOverlap qs p u
+  have hsms : sms ∈ parisiMassDomain (k + 1) :=
+    splitParisiMassLeft_mem_domain hmd p ⟨(sub_pos.1 (hm.mExt_gap_pos p)).le, le_rfl⟩
+  have hsqs : sqs ∈ parisiOverlapDomain (k + 1) := splitParisiOverlap_mem_domain hqd p hu
+  have hpref : ∀ i : Fin p.val, sms ⟨i.val, by omega⟩ = ms ⟨i.val, by omega⟩ :=
+    fun i => splitParisiMassLeft_apply_of_lt ms p _ i.isLt
+  have hpos : ∀ i : Fin p.val, 0 < sms ⟨i.val, by omega⟩ := by
+    intro i
+    rw [hpref i]
+    exact hm.2.1 _
+  have hle : ∀ i : Fin p.val, sms ⟨i.val, by omega⟩ ≤ 1 := by
+    intro i
+    rw [hpref i]
+    exact (hm.2.2 _).le
+  have hv : parisiVar ξ sqs (p.val + 1) ≤ V := parisiVar_le_total_variance hξ hsqs _
+  have hmp : mExt ms (p.val + 1) ∈ Icc (0 : ℝ) 1 :=
+    ⟨mExt_nonneg (fun i => (hm.2.1 i).le) _, mExt_le_one (fun i => (hm.2.2 i).le) _⟩
+  have hh := hTaylor hμ ξ (k + 1) sms sqs p
+    (mem_parisiMassDomain_iff.1 hsms).1 hpos hle hv _ hmp b hb
+  have hd := hasDerivWithinAt_closedRandomFieldParisiFunctional_mass_update
+    hμ ξ sms sqs p hpos hle hmp
+  simp only [sms, update_splitParisiMassLeft] at hd hh
+  have hdleft := hasDerivWithinAt_closedRandomFieldParisiFunctional_split_left_mass
+    hμ ξ ms qs (fun i => hm.2.1 i) (fun i => (hm.2.2 i).le) p u hmp
+  have hcoef := (hd.derivWithin (uniqueDiffOn_Icc_zero_one _ hmp)).symm.trans
+    (hdleft.derivWithin (uniqueDiffOn_Icc_zero_one _ hmp))
+  rw [hcoef] at hh
+  exact hh
+
+/-- At the lower mass endpoint of the outer-mass split, the preceding two
+layers merge and the old left overlap moves to u. This is the endpoint input
+for the mirror of (14.264), including the initial and terminal intervals. -/
+theorem closedRandomFieldParisiFunctional_split_left_lower_mass
+    (μh : Measure ℝ) {ξ : ℝ → ℝ} (hξ : TalagrandXiCondition ξ) {k : ℕ}
+    (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (hq : qs ∈ parisiOverlapDomain k)
+    (p : Fin (k + 1)) {u : ℝ}
+    (hu : qExt qs (p.val + 1) ≤ u ∧ u ≤ qExt qs (p.val + 2)) :
+    closedRandomFieldParisiFunctional μh ξ
+        (splitParisiMassLeft ms p (mExt ms p.val)) (splitParisiOverlap qs p u) =
+      closedRandomFieldParisiFunctional μh ξ ms (qUpdate qs p u) := by
+  let sms := splitParisiMassLeft ms p (mExt ms p.val)
+  have hprev : mExt ms p.val = mExt sms p.val := by
+    have he := mExt_eraseParisiMass sms p p.val
+    simpa only [sms, erase_splitParisiMassLeft, ite_eq_left le_rfl] using he
+  have hmass : mExt sms p.castSucc.val = mExt sms (p.castSucc.val + 1) := by
+    change mExt sms p.val = mExt sms (p.val + 1)
+    rw [← hprev, mExt_val_succ sms p]
+    exact (Fin.insertNth_apply_same (α := fun _ => ℝ) p (mExt ms p.val) ms).symm
+  have hbounds : qExt (splitParisiOverlap qs p u) p.castSucc.val ≤ u ∧
+      u ≤ qExt (splitParisiOverlap qs p u) (p.castSucc.val + 2) := by
+    change qExt (splitParisiOverlap qs p u) p.val ≤ u ∧
+      u ≤ qExt (splitParisiOverlap qs p u) (p.val + 2)
+    rw [qExt_splitParisiOverlap_before qs p u (by omega),
+      qExt_splitParisiOverlap_inserted]
+    have hb := mem_parisiOverlapDomain_iff.1 hq
+    exact ⟨(qExt_le_succ hb.1 hb.2.1 hb.2.2 (by omega)).trans hu.1, le_rfl⟩
+  have he := closedRandomFieldParisiFunctional_qUpdate_eq_of_equal_mass μh hξ sms
+    (splitParisiOverlap qs p u) (splitParisiOverlap_mem_domain hq p hu)
+    p.castSucc u hmass hbounds
+  have hqs : qUpdate (splitParisiOverlap qs p u) p.castSucc u =
+      splitParisiOverlap (qUpdate qs p u) p u := by
+    unfold qUpdate splitParisiOverlap
+    rw [← Fin.succAbove_succ_self p]
+    exact (Fin.insertNth_update (α := fun _ => ℝ) p.succ u p u qs).symm
+  rw [hqs] at he
+  have hend := closedRandomFieldParisiFunctional_split_left_endpoint
+    μh (ξ := ξ) ms (qUpdate qs p u) p (mExt ms p.val)
+  rw [qUpdate_self] at hend
+  exact he.symm.trans hend
+
+/-- Full fixed-level minimality compares the old matching-mass value with
+the lower mass endpoint of the outer split. The comparison is at the old
+dimension, even for the terminal interval and repeated endpoint overlaps. -/
+theorem closedRandomFieldParisiFunctional_split_left_matching_le_lower_of_isMinOn
+    {μh : Measure ℝ} {ξ : ℝ → ℝ} (hξ : TalagrandXiCondition ξ) {k : ℕ}
+    (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ)
+    (hm : ParisiMAdmissible ms) (hq : ParisiQAdmissible qs)
+    (hmin : IsMinOn (fun x => closedRandomFieldParisiFunctional μh ξ x.1 x.2)
+      (parisiParameterDomain k) (ms, qs)) (p : Fin (k + 1)) {u : ℝ}
+    (hu : qExt qs (p.val + 1) ≤ u ∧ u ≤ qExt qs (p.val + 2)) :
+    closedRandomFieldParisiFunctional μh ξ
+        (splitParisiMassLeft ms p (mExt ms (p.val + 1))) (splitParisiOverlap qs p u) ≤
+      closedRandomFieldParisiFunctional μh ξ
+        (splitParisiMassLeft ms p (mExt ms p.val)) (splitParisiOverlap qs p u) := by
+  have hqd : qs ∈ parisiOverlapDomain k := mem_parisiOverlapDomain_iff.2
+    ⟨hq.1.monotone, hq.2.1, hq.2.2⟩
+  rw [closedRandomFieldParisiFunctional_split_matching_mass μh hξ ms qs hqd p u hu,
+    closedRandomFieldParisiFunctional_split_left_lower_mass μh hξ ms qs hqd p hu]
+  have hmd : ms ∈ parisiMassDomain k := mem_parisiMassDomain_iff.2
+    ⟨hm.1.monotone, fun i => (hm.2.1 i).le, fun i => (hm.2.2 i).le⟩
+  have hleft : qs p ≤ u := by
+    simpa only [qExt_succ_of_lt qs p.isLt] using hu.1
+  refine hmin (a := (ms, qUpdate qs p u)) ⟨hmd, ?_⟩
+  refine qUpdate_mem_domain_of_bounds hqd p
+    ⟨(hq.mem_Icc p).1.trans hleft, hu.2.trans (qExt_mem_Icc_of_mem_cube hqd.1 _).2⟩ ?_ ?_
+  · intro i hi
+    exact (hq.monotone hi.le).trans hleft
+  · intro i hi
+    have hnext : qExt qs (p.val + 2) ≤ qs i := by
+      rw [show p.val + 2 = (p.val + 1) + 1 by omega,
+        qExt_succ_of_lt qs (by have hh := i.isLt; change p.val < i.val at hi; omega)]
+      apply hq.monotone
+      change p.val + 1 ≤ i.val
+      change p.val < i.val at hi
+      omega
+    exact hu.2.trans hnext
+
+/-- The mirror of (14.264) for the actual outer-mass derivative.
+Its constant is chosen before all parameters and field laws, including the
+terminal old mass one. No lower bound on the admissible mass gap is assumed. -/
+theorem exists_uniform_splitParisiLeftMassDeriv_upper_bound
+    {ξ : ℝ → ℝ} (hξ : TalagrandXiCondition ξ) :
+    ∃ M : ℝ, 0 < M ∧ ∀ {μh : Measure ℝ} [IsProbabilityMeasure μh],
+      Integrable id μh → ∀ {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ},
+      ParisiMAdmissible ms → ParisiQAdmissible qs →
+      IsMinOn (fun x => closedRandomFieldParisiFunctional μh ξ x.1 x.2)
+        (parisiParameterDomain k) (ms, qs) → ∀ {ε : ℝ}, 0 ≤ ε →
+      randomFieldParisiFunctional μh ξ ms qs < randomFieldParisiInf μh ξ + ε →
+      ∀ p : Fin (k + 1), ∀ u : ℝ,
+      qExt qs (p.val + 1) ≤ u ∧ u ≤ qExt qs (p.val + 2) →
+        splitParisiLeftMassDeriv μh ξ ms qs p u (mExt ms (p.val + 1)) ≤
+          2 * Real.sqrt (M * ε) := by
+  obtain ⟨M, hM, hTaylor⟩ := exists_uniform_splitParisiLeft_mass_taylor_bound hξ
+  refine ⟨M, hM, ?_⟩
+  intro μh _ hμ k ms qs hm hq hmin ε hε hnear p u hu
+  have hmd : ms ∈ parisiMassDomain k := mem_parisiMassDomain_iff.2
+    ⟨hm.1.monotone, fun i => (hm.2.1 i).le, fun i => (hm.2.2 i).le⟩
+  have hqd : qs ∈ parisiOverlapDomain k := mem_parisiOverlapDomain_iff.2
+    ⟨hq.1.monotone, hq.2.1, hq.2.2⟩
+  let a := mExt ms p.val
+  let b := mExt ms (p.val + 1)
+  let D := splitParisiLeftMassDeriv μh ξ ms qs p u b
+  let Φ : ℝ → ℝ := fun c => closedRandomFieldParisiFunctional μh ξ
+    (splitParisiMassLeft ms p c) (splitParisiOverlap qs p u)
+  have hab : a < b := sub_pos.1 (hm.mExt_gap_pos p)
+  have ha : 0 ≤ a := mExt_nonneg (fun i => (hm.2.1 i).le) _
+  have hb : b ≤ 1 := mExt_le_one (fun i => (hm.2.2 i).le) _
+  have hzero : Φ b = randomFieldParisiFunctional μh ξ ms qs := by
+    dsimp only [Φ, b]
+    rw [closedRandomFieldParisiFunctional_split_matching_mass μh hξ ms qs hqd p u hu,
+      closedRandomFieldParisiFunctional_eq μh ξ ms qs hm]
+  have hcomp : Φ b ≤ Φ a :=
+    closedRandomFieldParisiFunctional_split_left_matching_le_lower_of_isMinOn
+      hξ ms qs hm hq hmin p hu
+  have hh := Aristotle.split_slope_ge_neg_sqrt
+    (Φ := fun c => Φ (a + b - c)) (a := a) (b := b) (M := M) (s := -D) hab hM hε
+    (by simpa only [show a + b - a = b by ring, show a + b - b = a by ring] using hcomp)
+    (fun c hc => by
+      rw [show a + b - a = b by ring, hzero]
+      exact (randomFieldParisiFunctional_sub_lt_split_left_of_near_inf hμ hξ hmd hqd
+        hnear p ⟨by change a ≤ a + b - c; linarith [hc.2],
+          by change a + b - c ≤ b; linarith [hc.1]⟩ hu).le)
+    (fun c hc => by
+      have ht := (le_abs_self _).trans (hTaylor hμ k ms qs hm hq p u hu (a + b - c)
+        ⟨by linarith [hc.2], by linarith [hc.1]⟩)
+      change Φ (a + b - c) - Φ b - D * (a + b - c - b) ≤
+        M * (a + b - c - b) ^ 2 at ht
+      rw [show a + b - c - b = -(c - a) by ring, neg_sq] at ht
+      rw [show a + b - a = b by ring]
+      linarith)
+  linarith
+
+/-- The mirror of (14.264) for the actual outer U/f response. The constant
+depends only on the covariance profile, and the terminal old mass one and
+k=0 are included. -/
+theorem exists_uniform_parisiLeftf_upper_bound
+    {ξ : ℝ → ℝ} (hξ : TalagrandXiCondition ξ) :
+    ∃ M : ℝ, 0 < M ∧ ∀ {μh : Measure ℝ} [IsProbabilityMeasure μh],
+      Integrable id μh → ∀ {k : ℕ} {ms : Fin k → ℝ} {qs : Fin (k + 1) → ℝ},
+      ParisiMAdmissible ms → ParisiQAdmissible qs →
+      IsMinOn (fun x => closedRandomFieldParisiFunctional μh ξ x.1 x.2)
+        (parisiParameterDomain k) (ms, qs) → ∀ {ε : ℝ}, 0 ≤ ε →
+      randomFieldParisiFunctional μh ξ ms qs < randomFieldParisiInf μh ξ + ε →
+      ∀ p : Fin (k + 1), ∀ u ∈ Icc (qs p) (qExt qs (p.val + 2)),
+        parisiLeftf μh ξ ms qs p u ≤ 4 * Real.sqrt (M * ε) := by
+  obtain ⟨M, hM, hbound⟩ := exists_uniform_splitParisiLeftMassDeriv_upper_bound hξ
+  refine ⟨M, hM, ?_⟩
+  intro μh _ hμ k ms qs hm hq hmin ε hε hnear p u hu
+  have hh := hbound hμ hm hq hmin hε hnear p u
+    ⟨by simpa only [qExt_succ_of_lt qs p.isLt] using hu.1, hu.2⟩
+  rw [splitParisiLeftMassDeriv_eq_U hμ hξ ms qs p hm hq hu] at hh
+  change (1 / 2) * parisiLeftf μh ξ ms qs p u ≤ 2 * Real.sqrt (M * ε) at hh
   linarith
 
 end SpinGlass

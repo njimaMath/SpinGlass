@@ -1,4 +1,5 @@
 import SpinGlass.Parisi.Variational.ParisiMin
+import SpinGlass.Parisi.Minimizer.QVariation.Terminal
 
 /-!
 # Uniform continuity in a constant external field
@@ -12,7 +13,7 @@ open scoped BigOperators NNReal
 
 namespace SpinGlass
 
-private theorem free_energy_density_le_add_of_pointwise_bound
+theorem free_energy_density_le_add_of_pointwise_bound
     {N : ℕ} (hN : 0 < N) (H₁ H₂ : EnergySpace N) (c : ℝ)
     (hb : ∀ σ, -H₂ σ ≤ -H₁ σ + (N : ℝ) * c) :
     free_energy_density N H₂ ≤ free_energy_density N H₁ + c := by

@@ -101,6 +101,18 @@ lemma parisiVar_qUpdate_right {ξ : ℝ → ℝ} {k : ℕ} (qs : Fin (k + 1) →
   unfold parisiVar
   rw [qExt_qUpdate_of_gt qs r u (by omega), qExt_qUpdate_self]
 
+/-- `θ'(q) = q ξ''(q)`. -/
+theorem hasDerivAt_parisiTheta {ξ : ℝ → ℝ} {q ξ₂ : ℝ}
+    (hξ : HasDerivAt ξ (deriv ξ q) q)
+    (hξ' : HasDerivAt (deriv ξ) ξ₂ q) :
+    HasDerivAt (parisiTheta ξ) (q * ξ₂) q := by
+  unfold parisiTheta
+  have hfun : id * deriv ξ - ξ = fun x => x * deriv ξ x - ξ x := by
+    rfl
+  rw [← hfun]
+  simpa only [id_eq, one_mul, mul_one, add_sub_cancel_left] using
+    ((hasDerivAt_id q).mul hξ').sub hξ
+
 /-! ### Admissible parameters and minimization in the overlap variables -/
 
 /-- The mass condition (14.103), with the endpoint values `m₀ = 0` and `m_{k+1} = 1`
@@ -345,49 +357,31 @@ and the vacuous-mass case `k = 0`. -/
 lemma ParisiMAdmissible.mExt_gap_pos {k : ℕ} {ms : Fin k → ℝ}
     (hm : ParisiMAdmissible ms) (r : Fin (k + 1)) :
     0 < mExt ms (r.val + 1) - mExt ms r.val := by
-  have hrle : r.val ≤ k := by omega
-  by_cases htop : r.val = k
-  · by_cases hk : k = 0
-    · subst k
-      have hr : r.val = 0 := by omega
-      rw [hr, mExt_zero, mExt_of_zero_lt (r := 1) (by omega)]
-      norm_num
-    · let p : Fin k := ⟨k - 1, by omega⟩
-      have hr : r.val = p.val + 1 := by simp [p]; omega
-      have hu : mExt ms (r.val + 1) = 1 :=
-        mExt_eq_one_of_le ms (by omega)
-      have hl : mExt ms r.val = ms p := by
-        rw [hr, mExt_val_succ]
-      rw [hu, hl]
-      linarith [hm.2.2 p]
-  · have hrlt : r.val < k := lt_of_le_of_ne hrle htop
-    let p : Fin k := ⟨r.val, hrlt⟩
-    have hu : mExt ms (r.val + 1) = ms p := by
-      simpa [p] using mExt_val_succ ms p
-    rw [hu]
-    by_cases hr0 : r.val = 0
-    · rw [hr0, mExt_zero]
-      simpa using hm.2.1 p
-    · let p' : Fin k := ⟨r.val - 1, by omega⟩
-      have hl : mExt ms r.val = ms p' := by
-        have hv : r.val = p'.val + 1 := by simp [p']; omega
-        rw [hv, mExt_val_succ]
-      rw [hl]
-      apply sub_pos.mpr
-      apply hm.1
-      apply Fin.mk_lt_mk.mpr
-      omega
+  apply sub_pos.2
+  cases k with
+  | zero =>
+    have hr : r = 0 := Fin.eq_zero r
+    subst r
+    norm_num [mExt]
+  | succ k =>
+    refine Fin.cases ?_ (fun p => ?_) r
+    · simpa only [Fin.val_zero, zero_add, mExt_zero, mExt_one] using hm.2.1 0
+    · refine Fin.lastCases ?_ (fun p => ?_) p
+      · change mExt ms ((Fin.last k).val + 1) < mExt ms (k + 1 + 1)
+        rw [mExt_val_succ, mExt_eq_one_of_le ms (le_refl _)]
+        exact hm.2.2 (Fin.last k)
+      · change mExt ms (p.castSucc.val + 1) < mExt ms (p.succ.val + 1)
+        rw [mExt_val_succ, mExt_val_succ]
+        exact hm.1 p.castSucc_lt_succ
 
 /-- Every positive extended mass index has positive mass under (14.103). -/
 lemma ParisiMAdmissible.mExt_pos {k : ℕ} {ms : Fin k → ℝ}
     (hm : ParisiMAdmissible ms) {n : ℕ} (hn : 0 < n) : 0 < mExt ms n := by
-  by_cases hnk : n ≤ k
-  · let p : Fin k := ⟨n - 1, by omega⟩
-    have hn_eq : n = p.val + 1 := by simp [p]; omega
-    rw [hn_eq, mExt_val_succ]
-    exact hm.2.1 p
-  · rw [mExt_eq_one_of_le ms (by omega)]
-    norm_num
+  unfold mExt
+  rw [ite_eq_right (Nat.ne_of_gt hn)]
+  split_ifs with h
+  · exact hm.2.1 _
+  · exact zero_lt_one
 
 
 end

@@ -52,41 +52,6 @@ lemma coleHopfIterateDeriv_eq_terminal_of_eq_zero {j : ℕ} (hj : j = 0)
   subst j
   rfl
 
-lemma coleHopf_translate (m : ℝ) (v : ℝ≥0) (A : ℝ → ℝ) (c x : ℝ) :
-    coleHopf m v (fun y => A (c + y)) x = coleHopf m v A (c + x) := by
-  unfold coleHopf
-  split_ifs
-  · apply integral_congr_ae
-    filter_upwards [] with z
-    congr 1
-    ring
-  · congr 2
-    apply integral_congr_ae
-    filter_upwards [] with z
-    congr 3
-    ring
-
-lemma coleHopfQ_translate (m : ℝ) (v : ℝ≥0) (A : ℝ → ℝ) (c x z : ℝ) :
-    coleHopfQ m v (fun y => A (c + y)) x z = coleHopfQ m v A (c + x) z := by
-  unfold coleHopfQ
-  rw [coleHopf_translate]
-  congr 3
-  ring
-
-theorem coleHopfIterate_translate {j : ℕ} (ms : Fin j → ℝ) (vs : Fin j → ℝ≥0)
-    (G : ℝ → ℝ) (c x : ℝ) :
-    coleHopfIterate j ms vs (fun y => G (c + y)) x =
-      coleHopfIterate j ms vs G (c + x) := by
-  induction j generalizing c x with
-  | zero => rfl
-  | succ j ih =>
-      rw [coleHopfIterate_succ, coleHopfIterate_succ]
-      have htail : coleHopfIterate j (Fin.tail ms) (Fin.tail vs) (fun y => G (c + y)) =
-          fun y => coleHopfIterate j (Fin.tail ms) (Fin.tail vs) G (c + y) := by
-        funext y
-        exact ih (Fin.tail ms) (Fin.tail vs) c y
-      rw [htail, coleHopf_translate]
-
 theorem coleHopfIterateDeriv_translate {j : ℕ} (ms : Fin j → ℝ) (vs : Fin j → ℝ≥0)
     (G G' : ℝ → ℝ) (c x : ℝ) :
     coleHopfIterateDeriv j ms vs (fun y => G (c + y)) (fun y => G' (c + y)) x =
@@ -167,8 +132,8 @@ theorem coleHopfIterate_deriv_regular {j : ℕ} (ms : Fin j → ℝ) (vs : Fin j
           _ ≤ C + |ms 0| * L ^ 2 := by
             rw [abs_mul, abs_pow]
             gcongr
-            exact hA''b x
-            exact hA'b x
+            · exact hA''b x
+            · exact hA'b x
       have hinnerg : HasExpGrowth fun x => A'' x + ms 0 * A' x ^ 2 :=
         HasExpGrowth.of_bounded hinnerb
       have hIc : Continuous fun x =>
@@ -192,8 +157,8 @@ theorem coleHopfIterate_deriv_regular {j : ℕ} (ms : Fin j → ℝ) (vs : Fin j
           _ ≤ (C + |ms 0| * L ^ 2) + |ms 0| * L ^ 2 := by
             rw [abs_mul, abs_pow]
             gcongr
-            exact hIb x
-            exact hB'b x
+            · exact hIb x
+            · exact hB'b x
           _ = C + 2 * |ms 0| * L ^ 2 := by ring
       change
         (∀ x, HasDerivAt B (B' x) x) ∧
@@ -424,21 +389,6 @@ theorem hasDerivAt_integral_coleHopfIterate_absorbed_last
   have hout := hasDerivAt_integral_gaussianReal_param hδ hΨlip hΨd hEb w₀ 0
   simpa [Ψ, E, Φ, D] using hout
 
-/-- Concatenating two finite arrays of levels composes their Cole-Hopf iterates. -/
-theorem coleHopfIterate_append (i j : ℕ)
-    (ms₁ : Fin i → ℝ) (vs₁ : Fin i → ℝ≥0)
-    (ms₂ : Fin j → ℝ) (vs₂ : Fin j → ℝ≥0) (G : ℝ → ℝ) :
-    coleHopfIterate (i + j) (Fin.append ms₁ ms₂) (Fin.append vs₁ vs₂) G =
-      coleHopfIterate i ms₁ vs₁ (coleHopfIterate j ms₂ vs₂ G) := by
-  have hp : (fun p => (Fin.append ms₁ ms₂ p, Fin.append vs₁ vs₂ p)) =
-      Fin.append (fun p => (ms₁ p, vs₁ p)) (fun p => (ms₂ p, vs₂ p)) := by
-    funext p
-    refine Fin.addCases (fun q => ?_) (fun q => ?_) p
-    · simp
-    · simp
-  rw [coleHopfIterate_eq_list, coleHopfIterate_eq_list, coleHopfIterate_eq_list,
-    hp, List.ofFn_fin_append, coleHopfIterateList_append]
-
 /-- An array is the concatenation of its prefix, next two entries, and suffix. -/
 lemma fin_append_two_slices {α : Type} (j s : ℕ) (a : Fin (j + (2 + s)) → α) :
     Fin.append (fun p : Fin j => a ⟨p.val, by omega⟩)
@@ -451,7 +401,7 @@ lemma fin_append_two_slices {α : Type} (j s : ℕ) (a : Fin (j + (2 + s)) → �
   · refine Fin.addCases (fun t => ?_) (fun t => ?_) q
     · simp
       congr 1
-    · simp
+    · simp only [Fin.append_right]
       apply congrArg a
       apply Fin.ext
       simp
@@ -666,7 +616,6 @@ lemma tendsto_uniform_coleHopf_of_tendsto_var
     change coleHopfModulus m L (Real.toNNReal ((v a - v₀ : ℝ≥0) : ℝ)) < ε at hm
     rw [Real.toNNReal_coe] at hm
     exact (abs_coleHopf_sub_coleHopf_le hAm hAlip m hle x).trans_lt hm
-
   · rw [abs_sub_comm]
     have hdiff : (((v₀ - v a : ℝ≥0) : ℝ)) ∈ Metric.ball (0 : ℝ) δ := by
       rw [Metric.mem_ball, Real.dist_eq, sub_zero, NNReal.coe_sub hle]
@@ -839,7 +788,8 @@ lemma measurable_integral_cascadeTiltMeasure_comp_add_sum {j : ℕ}
   let Gs : ℝ → (Fin j → ℝ) → ℝ≥0∞ := fun x zs =>
     ENNReal.ofReal (Real.exp (G (x + ∑ p, zs p)))
   have hsum : Measurable fun q : ℝ × (Fin j → ℝ) => q.1 + ∑ p, q.2 p :=
-    measurable_fst.add (Finset.measurable_sum _ fun p _ => measurable_pi_apply p |>.comp measurable_snd)
+    measurable_fst.add (Finset.measurable_sum _ fun p _ =>
+      (measurable_pi_apply p).comp measurable_snd)
   have hGsjoint : Measurable (Function.uncurry Gs) :=
     ENNReal.measurable_ofReal.comp (Real.measurable_exp.comp (hGm.comp hsum))
   have hdens : Measurable fun q : ℝ × (Fin j → ℝ) =>

@@ -1,7 +1,9 @@
 import SpinGlass.Parisi.ParisiInf
-import SpinGlass.Parisi.Minimizer.QVariation.RandomField
+import SpinGlass.Parisi.Field.FieldMoments
 import SpinGlass.Parisi.Field.ExternalFieldZero
 import SpinGlass.Parisi.Field.FieldContinuity
+import SpinGlass.Parisi.Field.FieldTruncation
+import SpinGlass.Parisi.Interpolation.BoundedLowerBound
 
 /-!
 # The lower half of the Parisi formula and the convergence corollary
@@ -17,13 +19,14 @@ the main §§14.5–14.10 argument. The general finite-second-moment theorem the
 adds the zero-second-moment case by Talagrand's field-to-zero reduction.
 No bounded-support or exponential-moment assumption is imposed.
 
-The proof gap in the nondegenerate lower bound remains: it needs MIN parameters,
-the main estimate, overlap localization, and the interpolation limit.
-The zero-field branch is reduced to that theorem by identification of the law
+The nondegenerate lower bound follows from MIN parameters, the uniform main
+estimate, concentration, overlap localization, the exact cascade interpolation
+identity and Gronwall comparison. Field truncation retains the original
+finite-second-moment assumption. The zero-field branch uses identification
 with the Dirac mass at zero and uniform continuity in a constant field.
-The convergence and liminf corollaries below depend on the nondegenerate placeholder.
-They use the proved finite-volume Guerra bound from `ParisiInf`, retaining
-its global differentiability and derivative-at-zero hypotheses explicitly.
+The convergence and liminf corollaries also use the finite-volume Guerra bound
+from `ParisiInf`, retaining its global differentiability and derivative-at-zero
+hypotheses explicitly.
 -/
 
 open MeasureTheory Filter Topology
@@ -40,8 +43,12 @@ theorem eventually_randomFieldParisiInf_sub_le_iidFieldMixedPSpinFreeEnergy_of_n
     (hPSD : ∀ N : ℕ, (overlapCovMatrix N ξ).PosSemidef) :
     ∀ ε > 0, ∀ᶠ N in atTop,
       randomFieldParisiInf μh ξ - ε ≤ iidFieldMixedPSpinFreeEnergy N μh ξ := by
-  -- TODO: Theorem 14.5.4 and the endpoint comparison (14.109), then let t₀ tend to 1.
-  sorry
+  apply eventually_randomFieldParisiInf_sub_le_iidFieldMixedPSpinFreeEnergy_of_bounded_laws
+    hμh hξ hPSD
+  intro ν _ hν hbound
+  obtain ⟨R, hR, hRbound⟩ := hbound
+  exact eventually_randomFieldParisiInf_sub_le_iidFieldMixedPSpinFreeEnergy_of_bounded
+    hν hξ hPSD hR.le hRbound
 
 /-- The lower half of Talagrand, Vol. II, Theorem 14.5.1, (14.102): for every
 $\varepsilon > 0$, eventually $\mathcal P(\xi,\mu_h)-\varepsilon\le p_N$.
@@ -70,10 +77,8 @@ theorem eventually_randomFieldParisiInf_sub_le_iidFieldMixedPSpinFreeEnergy
     intro ε hε
     let a : ℝ := ε / 4
     have ha : 0 < a := by dsimp [a]; positivity
-    have hconst : NondegenerateExternalFieldLaw (Measure.dirac a) := by
-      constructor
-      · exact integrable_dirac (a := a) (f := fun h : ℝ => h ^ 2) (by simp)
-      · simpa only [integral_dirac] using sq_pos_of_pos ha
+    have hconst : NondegenerateExternalFieldLaw (Measure.dirac a) :=
+      (nondegenerateExternalFieldLaw_dirac_iff a).2 (ne_of_gt ha)
     have hevent :=
       eventually_randomFieldParisiInf_sub_le_iidFieldMixedPSpinFreeEnergy_of_nondegenerate
         hconst hξ hPSD (ε / 2) (by positivity)
@@ -101,16 +106,7 @@ theorem tendsto_iidFieldMixedPSpinFreeEnergy_randomFieldParisiInf
     (hdiff : Differentiable ℝ ξ) (h0 : deriv ξ 0 = 0) :
     Tendsto (fun N => iidFieldMixedPSpinFreeEnergy N μh ξ) atTop
       (𝓝 (randomFieldParisiInf μh ξ)) := by
-  have hid : Integrable (fun h : ℝ => h) μh := by
-    apply ((integrable_const (1 : ℝ)).add hμh).mono' measurable_id.aestronglyMeasurable
-    filter_upwards [] with h
-    change ‖h‖ ≤ 1 + h ^ 2
-    rw [Real.norm_eq_abs]
-    rcases le_total 0 h with hh | hh
-    · rw [abs_of_nonneg hh]
-      nlinarith [sq_nonneg (h - 1)]
-    · rw [abs_of_nonpos hh]
-      nlinarith [sq_nonneg (h + 1)]
+  have hid := integrable_externalField_of_integrable_sq hμh
   apply tendsto_order.2
   constructor
   · intro a ha

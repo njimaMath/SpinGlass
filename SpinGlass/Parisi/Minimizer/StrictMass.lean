@@ -1,4 +1,5 @@
 import SpinGlass.Parisi.Minimizer.StrictOverlap
+import SpinGlass.Parisi.Minimizer.QVariation.RandomField
 
 /-!
 # StrictMass
@@ -268,6 +269,30 @@ theorem closedRandomFieldParisiFunctional_first_zero_mass_eq
   exact closedRandomFieldParisiFunctional_qUpdate_eq_of_equal_mass μh hξ ms qs hq
     0 (qs 1) (by simp [mExt_one, hm0]) hu
 
+private theorem reduce_closedMinimum_of_flattened_overlap
+    (μh : Measure ℝ) {ξ : ℝ → ℝ} {k : ℕ}
+    (ms : Fin (k + 1) → ℝ) (qs qu : Fin (k + 2) → ℝ)
+    (hm : ms ∈ parisiMassDomain (k + 1))
+    (hqu : qu ∈ parisiOverlapDomain (k + 1))
+    (hmin : IsMinOn (fun x => closedRandomFieldParisiFunctional μh ξ x.1 x.2)
+      (parisiParameterDomain (k + 1)) (ms, qs))
+    (p : Fin (k + 1))
+    (hflat : closedRandomFieldParisiFunctional μh ξ ms qu =
+      closedRandomFieldParisiFunctional μh ξ ms qs)
+    (hrepeat : qu p.castSucc = qu p.succ) :
+    ∃ (ms' : Fin k → ℝ) (qs' : Fin (k + 1) → ℝ),
+      ms' ∈ parisiMassDomain k ∧ qs' ∈ parisiOverlapDomain k ∧
+      closedRandomFieldParisiFunctional μh ξ ms' qs' =
+        closedRandomFieldParisiFunctional μh ξ ms qs ∧
+      IsMinOn (fun x => closedRandomFieldParisiFunctional μh ξ x.1 x.2)
+        (parisiParameterDomain k) (ms', qs') := by
+  refine ⟨eraseParisiMass ms p, eraseParisiOverlap qu p,
+    eraseParisiMass_mem_domain hm p, eraseParisiOverlap_mem_domain hqu p,
+    (closedRandomFieldParisiFunctional_erase_adjacent_eq μh ms qu p hrepeat).trans
+      hflat, ?_⟩
+  exact isMinOn_closedRandomFieldParisiFunctional_erase_adjacent_eq
+    μh ms qu p hrepeat (fun _ hx => hflat.trans_le (hmin hx))
+
 /-- A repeated interior or last mass lowers the level count while preserving
 the closed-domain minimum and its value. -/
 theorem reduce_closedRandomFieldParisiMinimum_of_equal_mass
@@ -286,28 +311,12 @@ theorem reduce_closedRandomFieldParisiMinimum_of_equal_mass
         closedRandomFieldParisiFunctional μh ξ ms qs ∧
       IsMinOn (fun x => closedRandomFieldParisiFunctional μh ξ x.1 x.2)
         (parisiParameterDomain k) (ms', qs') := by
-  let qu := repeatParisiOverlap (eraseParisiOverlap qs p) p
-  have hqu : qu ∈ parisiOverlapDomain (k + 1) :=
-    repeatParisiOverlap_mem_domain (eraseParisiOverlap_mem_domain hq p) p
-  have hflat : closedRandomFieldParisiFunctional μh ξ ms qu =
-      closedRandomFieldParisiFunctional μh ξ ms qs :=
-    closedRandomFieldParisiFunctional_repeat_erase_eq_of_equal_mass
-      μh hξ ms qs hq p he
-  have hrepeat : qu p.castSucc = qu p.succ :=
-    repeatParisiOverlap_adjacent_eq _ p
-  have hminqu : IsMinOn (fun x => closedRandomFieldParisiFunctional μh ξ x.1 x.2)
-      (parisiParameterDomain (k + 1)) (ms, qu) := by
-    intro x hx
-    change closedRandomFieldParisiFunctional μh ξ ms qu ≤
-      closedRandomFieldParisiFunctional μh ξ x.1 x.2
-    rw [hflat]
-    exact hmin hx
-  refine ⟨eraseParisiMass ms p, eraseParisiOverlap qu p,
-    eraseParisiMass_mem_domain hm p, eraseParisiOverlap_mem_domain hqu p, ?_, ?_⟩
-  · exact (closedRandomFieldParisiFunctional_erase_adjacent_eq μh ms qu p hrepeat).trans
-      hflat
-  · exact isMinOn_closedRandomFieldParisiFunctional_erase_adjacent_eq
-      μh ms qu p hrepeat hminqu
+  exact reduce_closedMinimum_of_flattened_overlap μh ms qs
+    (repeatParisiOverlap (eraseParisiOverlap qs p) p) hm
+    (repeatParisiOverlap_mem_domain (eraseParisiOverlap_mem_domain hq p) p) hmin p
+    (closedRandomFieldParisiFunctional_repeat_erase_eq_of_equal_mass
+      μh hξ ms qs hq p he)
+    (repeatParisiOverlap_adjacent_eq _ p)
 
 /-- A zero first mass is merged with the root Gaussian expectation and then
 deleted, preserving the closed-domain minimum. -/
@@ -325,27 +334,10 @@ theorem reduce_closedRandomFieldParisiMinimum_of_first_zero_mass
         closedRandomFieldParisiFunctional μh ξ ms qs ∧
       IsMinOn (fun x => closedRandomFieldParisiFunctional μh ξ x.1 x.2)
         (parisiParameterDomain k) (ms', qs') := by
-  let qu := qUpdate qs 0 (qs 1)
-  have hqu : qu ∈ parisiOverlapDomain (k + 1) :=
-    qUpdate_first_to_second_mem_domain hq
-  have hflat : closedRandomFieldParisiFunctional μh ξ ms qu =
-      closedRandomFieldParisiFunctional μh ξ ms qs :=
-    closedRandomFieldParisiFunctional_first_zero_mass_eq μh hξ ms qs hq hm0
-  have hrepeat : qu (0 : Fin (k + 1)).castSucc = qu (0 : Fin (k + 1)).succ := by
-    simp [qu, qUpdate]
-  have hminqu : IsMinOn (fun x => closedRandomFieldParisiFunctional μh ξ x.1 x.2)
-      (parisiParameterDomain (k + 1)) (ms, qu) := by
-    intro x hx
-    change closedRandomFieldParisiFunctional μh ξ ms qu ≤
-      closedRandomFieldParisiFunctional μh ξ x.1 x.2
-    rw [hflat]
-    exact hmin hx
-  refine ⟨eraseParisiMass ms 0, eraseParisiOverlap qu 0,
-    eraseParisiMass_mem_domain hm 0, eraseParisiOverlap_mem_domain hqu 0, ?_, ?_⟩
-  · exact (closedRandomFieldParisiFunctional_erase_adjacent_eq μh ms qu 0 hrepeat).trans
-      hflat
-  · exact isMinOn_closedRandomFieldParisiFunctional_erase_adjacent_eq
-      μh ms qu 0 hrepeat hminqu
+  exact reduce_closedMinimum_of_flattened_overlap μh ms qs (qUpdate qs 0 (qs 1)) hm
+    (qUpdate_first_to_second_mem_domain hq) hmin 0
+    (closedRandomFieldParisiFunctional_first_zero_mass_eq μh hξ ms qs hq hm0)
+    (by simp [qUpdate])
 
 /-- Repeated or endpoint masses can be deleted while retaining a minimum over
 the entire closed parameter domain. -/
@@ -369,68 +361,50 @@ theorem exists_strictM_closedRandomFieldParisiMinimum
     exact ⟨0, ms, qs, le_refl _,
       ⟨hs, (fun i => i.elim0), (fun i => i.elim0)⟩, hq, rfl, hmin⟩
   | succ k ih =>
+    by_cases hadm : ParisiMAdmissible ms
+    · exact ⟨k + 1, ms, qs, le_refl _, hadm, hq, rfl, hmin⟩
     have hb := mem_parisiMassDomain_iff.1 hm
-    by_cases hzero : ms 0 = 0
-    · obtain ⟨ms', qs', hm', hq', heq, hmin'⟩ :=
-        reduce_closedRandomFieldParisiMinimum_of_first_zero_mass
+    have hreduce : ∃ (ms' : Fin k → ℝ) (qs' : Fin (k + 1) → ℝ),
+        ms' ∈ parisiMassDomain k ∧ qs' ∈ parisiOverlapDomain k ∧
+        closedRandomFieldParisiFunctional μh ξ ms' qs' =
+          closedRandomFieldParisiFunctional μh ξ ms qs ∧
+        IsMinOn (fun x => closedRandomFieldParisiFunctional μh ξ x.1 x.2)
+          (parisiParameterDomain k) (ms', qs') := by
+      by_cases hzero : ms 0 = 0
+      · exact reduce_closedRandomFieldParisiMinimum_of_first_zero_mass
           μh hξ ms qs hm hq hmin hzero
-      obtain ⟨l, ms'', qs'', hl, hstrict, hq'', heq', hmin''⟩ :=
-        ih ms' qs' hm' hq' hmin'
-      exact ⟨l, ms'', qs'', hl.trans (Nat.le_succ k), hstrict, hq'',
-        heq'.trans heq, hmin''⟩
-    by_cases hstrict : StrictMono ms
-    · by_cases hlast : ms (Fin.last k) = 1
-      · have he : mExt ms ((Fin.last k).val + 1) =
+      by_cases hstrict : StrictMono ms
+      · have hlast : ms (Fin.last k) = 1 := by
+          by_contra hlast
+          exact hadm ⟨hstrict,
+            (fun i => (lt_of_le_of_ne (hb.2.1 0) (Ne.symm hzero)).trans_le
+              (hb.1 (Fin.zero_le i))),
+            (fun i => (hb.1 (Fin.le_last i)).trans_lt
+              (lt_of_le_of_ne (hb.2.2 (Fin.last k)) hlast))⟩
+        have he : mExt ms ((Fin.last k).val + 1) =
             mExt ms ((Fin.last k).val + 2) := by
           have hleft : mExt ms ((Fin.last k).val + 1) = ms (Fin.last k) :=
             mExt_val_succ ms (Fin.last k)
           simp only [Fin.val_last] at hleft ⊢
           rw [hleft, mExt_eq_one_of_le (ms := ms) (by omega)]
           exact hlast
-        obtain ⟨ms', qs', hm', hq', heq, hmin'⟩ :=
-          reduce_closedRandomFieldParisiMinimum_of_equal_mass
-            μh hξ ms qs hm hq hmin (Fin.last k) he
-        obtain ⟨l, ms'', qs'', hl, hstrict', hq'', heq', hmin''⟩ :=
-          ih ms' qs' hm' hq' hmin'
-        exact ⟨l, ms'', qs'', hl.trans (Nat.le_succ k), hstrict', hq'',
-          heq'.trans heq, hmin''⟩
-      · have hpos : ∀ i, 0 < ms i := by
-          intro i
-          exact lt_of_le_of_ne (hb.2.1 i) (by
-            intro hi
-            apply hzero
-            have hle := hstrict.monotone (Fin.zero_le i)
-            rw [← hi] at hle
-            exact le_antisymm hle (hb.2.1 0))
-        have hlt : ∀ i, ms i < 1 := by
-          intro i
-          exact lt_of_le_of_ne (hb.2.2 i) (by
-            intro hi
-            apply hlast
-            have hle := hstrict.monotone (Fin.le_last i)
-            rw [hi] at hle
-            exact le_antisymm (hb.2.2 (Fin.last k)) hle)
-        exact ⟨k + 1, ms, qs, le_refl _, ⟨hstrict, hpos, hlt⟩, hq, rfl, hmin⟩
-    · have hn : ¬ ∀ p : Fin k, ms p.castSucc < ms p.succ :=
-        fun hp => hstrict (Fin.strictMono_iff_lt_succ.2 hp)
-      obtain ⟨p, hp⟩ := not_forall.1 hn
-      have heqMass : ms p.castSucc = ms p.succ :=
-        le_antisymm (hb.1 p.castSucc_le_succ) (le_of_not_gt hp)
-      have he : mExt ms (p.castSucc.val + 1) =
-          mExt ms (p.castSucc.val + 2) := by
-        have hleft : mExt ms (p.castSucc.val + 1) = ms p.castSucc :=
-          mExt_val_succ ms p.castSucc
-        have hright : mExt ms (p.castSucc.val + 2) = ms p.succ := by
-          simpa only [Fin.val_castSucc, Fin.val_succ] using mExt_val_succ ms p.succ
-        rw [hleft, hright]
-        exact heqMass
-      obtain ⟨ms', qs', hm', hq', heq, hmin'⟩ :=
-        reduce_closedRandomFieldParisiMinimum_of_equal_mass
+        exact reduce_closedRandomFieldParisiMinimum_of_equal_mass
+          μh hξ ms qs hm hq hmin (Fin.last k) he
+      · have hn : ¬ ∀ p : Fin k, ms p.castSucc < ms p.succ :=
+          fun hp => hstrict (Fin.strictMono_iff_lt_succ.2 hp)
+        obtain ⟨p, hp⟩ := not_forall.1 hn
+        have he : mExt ms (p.castSucc.val + 1) =
+            mExt ms (p.castSucc.val + 2) := by
+          rw [mExt_val_succ ms p.castSucc,
+            show p.castSucc.val + 2 = p.succ.val + 1 by rfl, mExt_val_succ ms p.succ]
+          exact le_antisymm (hb.1 p.castSucc_le_succ) (le_of_not_gt hp)
+        exact reduce_closedRandomFieldParisiMinimum_of_equal_mass
           μh hξ ms qs hm hq hmin p.castSucc he
-      obtain ⟨l, ms'', qs'', hl, hstrict', hq'', heq', hmin''⟩ :=
-        ih ms' qs' hm' hq' hmin'
-      exact ⟨l, ms'', qs'', hl.trans (Nat.le_succ k), hstrict', hq'',
-        heq'.trans heq, hmin''⟩
+    obtain ⟨ms', qs', hm', hq', heq, hmin'⟩ := hreduce
+    obtain ⟨l, ms'', qs'', hl, hstrict, hq'', heq', hmin''⟩ :=
+      ih ms' qs' hm' hq' hmin'
+    exact ⟨l, ms'', qs'', hl.trans (Nat.le_succ k), hstrict, hq'',
+      heq'.trans heq, hmin''⟩
 
 /-- Deleting repeated overlaps after mass normalization keeps the strict mass
 condition and full fixed-level minimality. -/

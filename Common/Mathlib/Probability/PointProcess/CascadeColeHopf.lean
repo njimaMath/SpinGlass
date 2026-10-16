@@ -52,6 +52,21 @@ lemma coleHopfIterate_succ (k : ℕ) (ms : Fin (k + 1) → ℝ) (vs : Fin (k + 1
     coleHopfIterate (k + 1) ms vs G
       = coleHopf (ms 0) (vs 0) (coleHopfIterate k (Fin.tail ms) (Fin.tail vs) G) := rfl
 
+/-- Spatial translation commutes with every finite Cole-Hopf iterate. -/
+theorem coleHopfIterate_translate {j : ℕ} (ms : Fin j → ℝ) (vs : Fin j → ℝ≥0)
+    (G : ℝ → ℝ) (c x : ℝ) :
+    coleHopfIterate j ms vs (fun y => G (c + y)) x =
+      coleHopfIterate j ms vs G (c + x) := by
+  induction j generalizing c x with
+  | zero => rfl
+  | succ j ih =>
+      rw [coleHopfIterate_succ, coleHopfIterate_succ]
+      have htail : coleHopfIterate j (Fin.tail ms) (Fin.tail vs) (fun y => G (c + y)) =
+          fun y => coleHopfIterate j (Fin.tail ms) (Fin.tail vs) G (c + y) := by
+        funext y
+        exact ih (Fin.tail ms) (Fin.tail vs) c y
+      rw [htail, coleHopf_translate]
+
 /-- **The iterated Cole–Hopf transform along a list of levels** `[(m₁, v₁), …, (m_k, v_k)]`:
 `T_{m₁,v₁} ∘ ⋯ ∘ T_{m_k,v_k}`. The list form makes the level structure associative on the nose. -/
 noncomputable def coleHopfIterateList : List (ℝ × ℝ≥0) → (ℝ → ℝ) → ℝ → ℝ
@@ -81,6 +96,21 @@ theorem coleHopfIterate_eq_list (k : ℕ) : ∀ (ms : Fin k → ℝ) (vs : Fin k
     intro ms vs G
     rw [coleHopfIterate_succ, ih, List.ofFn_succ, coleHopfIterateList_cons]
     rfl
+
+/-- Concatenating two finite arrays of levels composes their Cole-Hopf iterates. -/
+theorem coleHopfIterate_append (i j : ℕ)
+    (ms₁ : Fin i → ℝ) (vs₁ : Fin i → ℝ≥0)
+    (ms₂ : Fin j → ℝ) (vs₂ : Fin j → ℝ≥0) (G : ℝ → ℝ) :
+    coleHopfIterate (i + j) (Fin.append ms₁ ms₂) (Fin.append vs₁ vs₂) G =
+      coleHopfIterate i ms₁ vs₁ (coleHopfIterate j ms₂ vs₂ G) := by
+  have hp : (fun p => (Fin.append ms₁ ms₂ p, Fin.append vs₁ vs₂ p)) =
+      Fin.append (fun p => (ms₁ p, vs₁ p)) (fun p => (ms₂ p, vs₂ p)) := by
+    funext p
+    refine Fin.addCases (fun q => ?_) (fun q => ?_) p
+    · simp
+    · simp
+  rw [coleHopfIterate_eq_list, coleHopfIterate_eq_list, coleHopfIterate_eq_list,
+    hp, List.ofFn_fin_append, coleHopfIterateList_append]
 
 /-- **Splitting the levels at any depth**: the first `j` levels applied to the rest. -/
 theorem coleHopfIterateList_split (j : ℕ) (l : List (ℝ × ℝ≥0)) (G : ℝ → ℝ) :

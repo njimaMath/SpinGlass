@@ -624,14 +624,20 @@ theorem coleHopf_add_const (hAg : HasLinearGrowth A) (hAm : Measurable A) (c : �
     field_simp
     ring
 
+/-- A Cole-Hopf layer commutes with translation at every mass and variance. -/
+theorem coleHopf_translate (m : ℝ) (v : ℝ≥0) (A : ℝ → ℝ) (c x : ℝ) :
+    coleHopf m v (fun y => A (c + y)) x = coleHopf m v A (c + x) := by
+  simp only [coleHopf, add_assoc]
+
+/-- The normalized tilt commutes with the same spatial translation as its layer. -/
+theorem coleHopfQ_translate (m : ℝ) (v : ℝ≥0) (A : ℝ → ℝ) (c x z : ℝ) :
+    coleHopfQ m v (fun y => A (c + y)) x z = coleHopfQ m v A (c + x) z := by
+  simp only [coleHopfQ, coleHopf_translate, add_assoc]
+
 /-- `T_{m,v}` commutes with translations of the argument. -/
 theorem coleHopf_comp_const_add (A : ℝ → ℝ) (m : ℝ) (v : ℝ≥0) (t : ℝ) :
     coleHopf m v (fun w => A (t + w)) 0 = coleHopf m v A t := by
-  rcases eq_or_ne m 0 with rfl | hm
-  · rw [coleHopf_zero, coleHopf_zero]
-    simp only [zero_add]
-  · rw [coleHopf_of_ne hm, coleHopf_of_ne hm]
-    simp only [zero_add]
+  simpa only [add_zero] using coleHopf_translate m v A t 0
 
 /-- **`T_{m,v}` preserves Lipschitz bounds**, for every exponent `m`: a consequence of
 monotonicity and translation invariance alone (Talagrand's `|A_p'| ≤ 1` of (14.271)). -/

@@ -1,3 +1,4 @@
+import SpinGlass.Parisi.Analytic.Hyperbolic
 import SpinGlass.Parisi.Variational.ParisiSpatialBounds
 import SpinGlass.Parisi.Variational.ParisiSplitResponse
 
@@ -55,6 +56,74 @@ theorem sum_parisiVar_of_talagrand {ξ : ℝ → ℝ} (hξ : TalagrandXiConditio
   rw [Fin.sum_univ_eq_sum_range (fun n => (parisiVar ξ qs n : ℝ)) (k + 2)]
   rw [Finset.sum_congr rfl (fun n hn => hvar n (Finset.mem_range.1 hn)),
     Finset.sum_range_sub (fun n => deriv ξ (qExt qs n)), qExt_zero, qExt_of_le qs le_rfl]
+
+/-- Telescoping of the suffix variances in (14.273)-(14.279). The closed
+overlap domain discharges every variance clamp, including empty suffixes. -/
+theorem sum_parisiQSuffixVars_of_talagrand {ξ : ℝ → ℝ} (hξ : TalagrandXiCondition ξ)
+    {k : ℕ} (qs : Fin (k + 1) → ℝ) (hq : qs ∈ parisiOverlapDomain k)
+    (r : Fin (k + 1)) :
+    ∑ p, (parisiQSuffixVars ξ qs r p : ℝ) =
+      deriv ξ 1 - deriv ξ (qExt qs (r.val + 2)) := by
+  obtain ⟨hmono, hq0, hq1⟩ := mem_parisiOverlapDomain_iff.1 hq
+  have hvar : ∀ n < k - r.val, (parisiVar ξ qs (r.val + n + 2) : ℝ) =
+      deriv ξ (qExt qs (r.val + n + 3)) - deriv ξ (qExt qs (r.val + n + 2)) := by
+    intro n hn
+    have hnonneg : 0 ≤ deriv ξ (qExt qs (r.val + n + 2 + 1)) -
+        deriv ξ (qExt qs (r.val + n + 2)) :=
+      sub_nonneg.2 (hξ.strictMonoOn_deriv.monotoneOn
+        (qExt_mem_Icc hmono hq0 hq1 _) (qExt_mem_Icc hmono hq0 hq1 _)
+        (qExt_le_succ hmono hq0 hq1 (by omega)))
+    unfold parisiVar
+    rw [Real.coe_toNNReal _ hnonneg]
+  change (∑ p : Fin (k - r.val), (parisiVar ξ qs (r.val + p.val + 2) : ℝ)) = _
+  rw [Fin.sum_univ_eq_sum_range (fun n =>
+    (parisiVar ξ qs (r.val + n + 2) : ℝ)) (k - r.val)]
+  rw [Finset.sum_congr rfl (fun n hn => hvar n (Finset.mem_range.1 hn))]
+  have hsum := Finset.sum_range_sub (fun n => deriv ξ (qExt qs (r.val + n + 2)))
+    (k - r.val)
+  simp only [Nat.add_zero] at hsum
+  simp only [show ∀ n, r.val + (n + 1) + 2 = r.val + n + 3 by intro n; omega] at hsum
+  rw [hsum, show r.val + (k - r.val) + 2 = k + 2 by omega, qExt_of_le qs le_rfl]
+
+/-- The adjacent suffix comparison (14.273), specialized to the actual
+recursion. The terminal old interval of mass 1 is included. -/
+theorem parisiQSuffix_adjacent_comparison (ξ : ℝ → ℝ) (h : ℝ) {k : ℕ}
+    (ms : Fin k → ℝ) (qs : Fin (k + 1) → ℝ) (p : Fin k)
+    (hm : ParisiMAdmissible ms) (x : ℝ) :
+    parisiQSuffix ξ h ms qs p.castSucc x - parisiQSuffix ξ h ms qs p.succ x ∈
+      Icc (0 : ℝ) ((parisiVar ξ qs (p.val + 2) : ℝ) / 2) := by
+  rw [parisiQSuffix_castSucc_eq_coleHopf_succ]
+  exact coleHopf_sub_self_mem_Icc
+    ((parisiQSuffix_spatial_regular_four ξ h ms qs p.succ).1.of_le (by norm_num))
+    (parisiQSuffix_sharp_spatial_bounds ξ h qs p.succ hm)
+    ⟨(hm.mExt_pos (by omega)).le, mExt_le_one (fun i => (hm.2.2 i).le) _⟩ _ x
+
+/-- Concrete suffix form of the value comparison (14.273), with the sum
+of variances expressed only through ξ and the fixed overlap endpoint. -/
+theorem parisiQSuffix_sub_terminal_mem_Icc_of_talagrand {ξ : ℝ → ℝ}
+    (hξ : TalagrandXiCondition ξ) (h : ℝ) {k : ℕ} (ms : Fin k → ℝ)
+    (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) (hm : ParisiMAdmissible ms)
+    (hq : qs ∈ parisiOverlapDomain k) (x : ℝ) :
+    parisiQSuffix ξ h ms qs r x - parisiLogCoshTerminal h x ∈
+      Icc (0 : ℝ) ((deriv ξ 1 - deriv ξ (qExt qs (r.val + 2))) / 2) := by
+  have hb := parisiQSuffix_sub_terminal_mem_Icc ξ h qs r hm x
+  rw [sum_parisiQSuffixVars_of_talagrand hξ qs hq r] at hb
+  exact hb
+
+/-- Concrete lower curvature (14.279) for every zero-field suffix. Its
+constant is independent of the level count and the individual masses. -/
+theorem parisiQSuffix_curvature_lower_of_talagrand {ξ : ℝ → ℝ}
+    (hξ : TalagrandXiCondition ξ) {k : ℕ} (ms : Fin k → ℝ)
+    (qs : Fin (k + 1) → ℝ) (r : Fin (k + 1)) (hm : ParisiMAdmissible ms)
+    (hq : qs ∈ parisiOverlapDomain k) (x : ℝ) :
+    Real.exp (-2 * (deriv ξ 1 - deriv ξ (qExt qs (r.val + 2)))) / Real.cosh x ^ 2 ≤
+      deriv (deriv (parisiQSuffix ξ 0 ms qs r)) x := by
+  have hmass : ∀ p, parisiQSuffixMasses ms r p ∈ Icc (0 : ℝ) 1 := fun p =>
+    ⟨(hm.mExt_pos (by omega)).le, mExt_le_one (fun i => (hm.2.2 i).le) _⟩
+  have hb := coleHopfIterate_logCosh_curvature_lower
+    (parisiQSuffixMasses ms r) (parisiQSuffixVars ξ qs r) hmass x
+  rw [sum_parisiQSuffixVars_of_talagrand hξ qs hq r] at hb
+  exact hb
 
 /-- The root function has fourth-order spatial regularity with bounded
 derivatives. The auxiliary bound is used for regularity only. -/
